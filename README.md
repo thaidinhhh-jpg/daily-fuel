@@ -32,12 +32,22 @@ per 100 g with portion weights. Packaged products not in the list can be found
 with barcode scan or "Search online" (Open Food Facts).
 
 ## Fast food
-`fastfood.js` holds about 2,500 menu items, taken from each chain's own published
+`fastfood.js` holds about 5,000 menu items, taken from each chain's own published
 nutrition (websites and nutrition PDFs), collected October 2026:
 
-- **Australia:** McDonald's, KFC, Hungry Jack's, Subway, Guzman y Gomez, Domino's,
-  Pizza Hut, Nando's (18 items with published nutrition), Red Rooster and Oporto
-  (these two publish energy only, so they're tagged "energy only")
+- **Australia:** McDonald's, KFC, Hungry Jack's, Subway, Guzman y Gomez, Zambrero,
+  Domino's, Pizza Hut, Nando's (18 items with published nutrition), Red Rooster and
+  Oporto (these two publish energy only, so they're tagged "energy only"), Boost Juice,
+  Betty's Burgers, Pie Face, Gloria Jean's (food), Soul Origin
+- **Australian ready meals:** My Muscle Chef, Youfoodz, Lite n' Easy, Dineamic,
+  Muscle Meals Direct (per-meal panels from each company's site)
+- **Australian supermarket protein snacks:** about 640 protein bars, cookies, balls,
+  wafers, chips, yoghurts, puddings, shakes and powders (Musashi, BSc, Muscle Nation,
+  Quest, Grenade, Carman's, YoPRO, Chobani, Koja, Health Lab and more) from the
+  manufacturer nutrition panels published on woolworths.com.au; the brand is shown
+  as the "chain"
+- Not available (no published nutrition): Mad Mex, Schnitz, Carl's Jr AU, Sushi Hub,
+  Chicken Treat, Krispy Kreme AU
 - **UK & Europe:** McDonald's UK, McDonald's Germany, KFC UK & Ireland, Burger King UK,
   Wendy's UK, Greggs, Subway UK & Ireland, Five Guys Europe (components; standard
   burgers are calculated from the official bun/patty/cheese values and labelled as such)
