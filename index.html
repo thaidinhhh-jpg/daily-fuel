@@ -192,6 +192,19 @@ h2 .btns{display:inline-flex}
 .rcard .rtools{display:flex;gap:10px;margin-top:6px}
 .rcard .rtools .link{font-size:12px}
 .rcard.mine{border-style:dashed}
+.week{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal{border:1px solid var(--line);border-radius:8px;min-height:46px;padding:4px;display:flex;flex-direction:column;align-items:flex-start;background:var(--bg);font:inherit;color:inherit;cursor:pointer;text-align:left}
+.cal span{font-size:11px;color:var(--muted)}
+.cal b{font-size:12px}
+.cal i{font-style:normal;font-size:11px;opacity:.6}
+.cal.hd{min-height:0;border:0;background:none;font-size:11px;color:var(--muted);cursor:default;padding:0 4px}
+.cal.pad,.cal.future{border-color:transparent;background:none;cursor:default}
+.cal.under{background:var(--accent-soft);border-color:transparent}
+.cal.under b{color:var(--accent)}
+.cal.over{background:var(--burn-soft,rgba(220,80,60,.12));border-color:transparent}
+.cal.over b{color:var(--burn)}
+.cal.today{outline:2px solid var(--accent)}
 .rcard{display:flex;gap:10px;align-items:flex-start}
 .rcard .rbody{min-width:0;flex:1}
 .rimg{width:64px;height:64px;border-radius:10px;object-fit:cover;flex:none;background:#f6f1e7}
@@ -258,8 +271,10 @@ h2 .btns{display:inline-flex}
       </div>
 
       <div class="card span8">
-        <h2>Meals <button class="btn" id="addFoodBtn">+ Add food</button></h2>
+        <h2>Meals <span class="btns" style="margin-left:auto"><button class="btn ghost" id="quickAddBtn">Quick add</button><button class="btn" id="addFoodBtn">+ Add food</button></span></h2>
         <div id="meals"></div>
+        <div style="margin-top:12px"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:3px">Notes for the day</label>
+          <textarea id="dayNote" rows="2" placeholder="How did today go? Hunger, sleep, how you felt…" style="width:100%;box-sizing:border-box;resize:vertical"></textarea></div>
       </div>
 
       <div class="span4" style="display:grid;gap:14px;align-content:start">
@@ -281,6 +296,14 @@ h2 .btns{display:inline-flex}
             <button class="chip" id="waterUndo">Undo</button>
           </div>
           <div class="inline"><input type="number" id="waterCustom" placeholder="Custom ml" min="0"><button class="btn ghost" id="waterAdd">Add</button></div>
+        </div>
+
+        <div class="card">
+          <h2>Fasting <span class="pill" id="fastPlan"></span></h2>
+          <div class="stat" id="fastStat">—</div>
+          <div class="bar" style="margin-top:8px"><i id="fastBar" style="background:var(--accent);width:0"></i></div>
+          <p class="muted" style="font-size:13px;margin:8px 0" id="fastInfo"></p>
+          <div class="btns" id="fastBtns"></div>
         </div>
 
         <div class="card">
@@ -310,6 +333,11 @@ h2 .btns{display:inline-flex}
       <div class="card span12">
         <h2>Last 7 days</h2>
         <div class="week" id="weekStats"></div>
+      </div>
+      <div class="card span12">
+        <h2><span id="calTitle">Calendar</span><span class="btns" style="margin-left:auto"><button class="iconbtn" id="calPrev" aria-label="Previous month">&#8249;</button><button class="iconbtn" id="calNext" aria-label="Next month">&#8250;</button></span></h2>
+        <div class="calgrid" id="calGrid"></div>
+        <p class="muted" style="font-size:12px;margin:10px 0 0" id="calNote"></p>
       </div>
       <div class="card span12">
         <h2><span id="histTitle">Last 14 days</span>
@@ -530,6 +558,26 @@ h2 .btns{display:inline-flex}
   </div>
 </div>
 
+<!-- Quick add -->
+<div class="modal" id="quickModal">
+  <div class="sheet">
+    <h3>Quick add<button class="x" data-close>&times;</button></h3>
+    <p class="muted" style="font-size:13px;margin-top:0">Log calories without picking a food — handy for a restaurant guess or a label you've already read. Macros are optional.</p>
+    <div class="fields">
+      <div class="w2"><label>Meal</label><select id="qMeal"></select></div>
+      <div class="w2"><label>Name (optional)</label><input id="qName" placeholder="Quick add"></div>
+      <div><label>kcal</label><input type="number" id="qKcal" min="0" inputmode="numeric"></div>
+      <div><label>Protein g</label><input type="number" id="qP" min="0" step="0.1"></div>
+      <div><label>Carbs g</label><input type="number" id="qC" min="0" step="0.1"></div>
+      <div><label>Fat g</label><input type="number" id="qF" min="0" step="0.1"></div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="qSubmit">Add</button>
+    </div>
+  </div>
+</div>
+
 <!-- Exercise modal -->
 <div class="modal" id="exModal">
   <div class="sheet">
@@ -594,10 +642,16 @@ const FOOD_DB = [
   ["Protein shake (1 scoop + water)",120,24,3,1.5],["Hummus (2 tbsp)",70,2,4,5],["Olive oil (1 tbsp)",119,0,0,13.5]
 ].map(a => ({name:a[0],kcal:a[1],p:a[2],c:a[3],f:a[4]}));
 
+// [name, MET] — Compendium of Physical Activities values
 const EXERCISES = [
-  ["Walking (brisk)",4.3],["Running (10 km/h)",9.8],["Jogging",7],["Cycling (moderate)",7.5],["Swimming",6],
-  ["Weight training",5],["HIIT",8],["Yoga",2.5],["Pilates",3],["Hiking",6],["Rowing machine",7],
-  ["Elliptical",5],["Dancing",5],["Basketball",6.5],["Soccer",7],["Tennis",7.3],["Jump rope",11],["Other",4]
+  ["Walking (casual, 4 km/h)",3],["Walking (brisk, 5.5 km/h)",4.3],["Walking (fast, 6.5 km/h)",5],["Walking uphill / stairs",6],["Hiking",6],["Bushwalking with pack",7.5],
+  ["Jogging (8 km/h)",8.3],["Running (10 km/h)",9.8],["Running (12 km/h)",11.5],["Running (14 km/h)",13],["Trail running",9],["Treadmill (incline walk)",5.5],
+  ["Cycling (leisurely)",4],["Cycling (moderate)",7.5],["Cycling (vigorous)",10],["Spin class / stationary bike",8.5],["Mountain biking",8.5],
+  ["Swimming (leisurely)",6],["Swimming laps (moderate)",8.3],["Swimming laps (vigorous)",10],["Surfing",3],["Kayaking / paddleboard",5],["Water aerobics",5.5],
+  ["Weight training (general)",5],["Weight training (heavy)",6],["Bodyweight circuit",8],["HIIT",8],["CrossFit-style class",8],["Boxing class",7.8],["Kettlebells",8],["Rowing machine",7],["Elliptical",5],["Stair climber",9],
+  ["Yoga",2.5],["Hot yoga",4],["Pilates",3],["Stretching / mobility",2.3],["Barre",4],
+  ["Basketball",6.5],["Soccer",7],["AFL / rugby",8],["Netball",6],["Tennis",7.3],["Squash",7.3],["Badminton",5.5],["Golf (walking)",4.8],["Cricket",4.8],["Volleyball",4],["Touch football",7],["Skateboarding / scooter",5],["Rock climbing",8],["Martial arts",10.3],["Skiing / snowboarding",5.3],["Jump rope",11],
+  ["Dancing",5],["Zumba / dance class",7],["Gardening",3.8],["Mowing the lawn",5.5],["Housework (vigorous)",3.5],["Playing with kids (active)",4],["Physical work (labouring)",6],["Other (moderate)",4],["Other (vigorous)",7]
 ];
 
 const DEFAULTS = {calGoal:2000,waterGoal:2500,stepGoal:10000,weightKg:70,countSteps:1,
@@ -608,15 +662,17 @@ const MACRO_PRESETS = [["Balanced",30,40,30],["High protein",40,35,25],["Low car
 let state = load();
 let cur = todayKey();
 function fresh(s){ s=s||{}; return {settings:{...DEFAULTS,...s.settings},days:s.days||{},myFoods:s.myFoods||[],weights:s.weights||{},
-  combos:s.combos||[],barcodes:s.barcodes||{},theme:s.theme||"",plan:s.plan||{},shop:s.shop||{},backupAt:s.backupAt||0,myRecipes:s.myRecipes||[]}; }
+  combos:s.combos||[],barcodes:s.barcodes||{},theme:s.theme||"",plan:s.plan||{},shop:s.shop||{},backupAt:s.backupAt||0,myRecipes:s.myRecipes||[],
+  fast:s.fast||null,fasts:s.fasts||[],fastHours:s.fastHours||16}; }
 // merge a backup into the current data: keep both sets of days (entries de-duplicated by id), weights, foods and meals
 function mergeState(cur, inc){
   const out=fresh(cur);
   Object.keys(inc.days||{}).forEach(k=>{
     const a=out.days[k], b=inc.days[k]; if(!a){ out.days[k]=b; return; }
     ["foods","water","exercise"].forEach(key=>{ const ids=new Set((a[key]||[]).map(x=>x.id)); (b[key]||[]).forEach(x=>{ if(!ids.has(x.id)) a[key].push(x); }); });
-    a.steps=Math.max(a.steps||0,b.steps||0);
+    a.steps=Math.max(a.steps||0,b.steps||0); if(!a.note&&b.note) a.note=b.note;
   });
+  const fs=new Set(out.fasts.map(x=>x.start)); (inc.fasts||[]).forEach(x=>{ if(!fs.has(x.start)) out.fasts.push(x); }); out.fasts.sort((a,b)=>a.start-b.start);
   Object.keys(inc.weights||{}).forEach(k=>{ if(out.weights[k]==null) out.weights[k]=inc.weights[k]; });
   const names=arr=>new Set(arr.map(x=>x.name.toLowerCase()));
   const mf=names(out.myFoods); (inc.myFoods||[]).forEach(f=>{ if(!mf.has(f.name.toLowerCase())) out.myFoods.push(f); });
@@ -635,6 +691,12 @@ function load(){
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast("Couldn't save — storage blocked"); } }
 function day(k){ k=k||cur; if(!state.days[k]) state.days[k]={foods:[],water:[],steps:0,exercise:[]}; return state.days[k]; }
+// foods you log most often (last 60 days), for the empty search
+function frequentFoods(){
+  const from=shift(todayKey(),-60), count={}, info={};
+  Object.keys(state.days).filter(k=>k>=from).forEach(k=>state.days[k].foods.forEach(f=>{ const key=f.name.toLowerCase(); count[key]=(count[key]||0)+1; info[key]={name:f.name,kcal:f.kcal,p:f.p,c:f.c,f:f.f,unit:f.unit,grams:f.grams,src:"frequent"}; }));
+  return Object.keys(count).filter(k=>count[k]>=3 && !/^quick add/i.test(k)).sort((a,b)=>count[b]-count[a]).slice(0,6).map(k=>info[k]);
+}
 function peek(k){ return state.days[k] || {foods:[],water:[],steps:0,exercise:[]}; }
 
 // ---------- helpers ----------
@@ -772,7 +834,12 @@ function renderToday(){
   const tm = trendMap(), trNow = trendAt(cur,tm), trWk = trendAt(shift(cur,-7),tm);
   if(trNow!==null && wKeys.length>1) info.push(`Trend ${trNow.toFixed(1)} kg`);
   if(trWk!==null){ const dlt=trNow-trWk; info.push(`${dlt>0?"+":"−"}${Math.abs(dlt).toFixed(1)} kg/week`); }
-  if(s.goalWeight){ const g=b.w-s.goalWeight; info.push(Math.abs(g)<0.05?"At goal weight 🎉":`${Math.abs(g).toFixed(1)} kg to goal (${s.goalWeight} kg)`); }
+  if(s.goalWeight){ const g=b.w-s.goalWeight; info.push(Math.abs(g)<0.05?"At goal weight 🎉":`${Math.abs(g).toFixed(1)} kg to goal (${s.goalWeight} kg)`);
+    // projected date at the current 2-week trend
+    const tr2=trendAt(shift(cur,-14),tm);
+    if(trNow!==null && tr2!==null && Math.abs(g)>=0.05){ const perDay=(trNow-tr2)/14;
+      if(perDay*g>0 && Math.abs(perDay)>0.005){ const days=Math.round(g/perDay); if(days<730) info.push(`on track for ${parseKey(shift(cur,days)).toLocaleDateString(undefined,{day:"numeric",month:"short",year:days>300?"numeric":undefined})} at this rate`); }
+      else if(trNow!==null && tr2!==null) info.push("trend is flat or moving away from goal"); } }
   $("#weightInfo").innerHTML = info.join(" · ") + (wToday?` · <button class="link" id="weightDel">Remove</button>`:"");
   $("#weightIn").placeholder = wToday ? `Update (${wToday} kg)` : "Log weight (kg)";
   const recent = wKeys.filter(d=>d>shift(cur,-30));
@@ -820,6 +887,12 @@ function renderToday(){
   $("#stepsPct").textContent = Math.round(sp*100)+"%";
   $("#stepsInfo").textContent = `≈ ${(t.steps*0.00075).toFixed(1)} km · ${fmt(t.stepKcal)} kcal`;
 
+  // day note
+  if(document.activeElement!==$("#dayNote")) $("#dayNote").value = d.note||"";
+
+  // fasting
+  renderFast();
+
   // exercise
   $("#exList").innerHTML = d.exercise.length ? d.exercise.map(e=>`<div class="item">
       <div class="nm">${esc(e.name)}<div class="sub">${fmt(e.min)} min</div></div>
@@ -828,6 +901,30 @@ function renderToday(){
     : `<div class="empty">No exercise logged</div>`;
 }
 
+// ---------- fasting timer ----------
+const FAST_PLANS=[12,14,16,18,20,24];
+const hm = ms => { const h=Math.floor(ms/36e5), m=Math.floor(ms%36e5/6e4); return h?`${h} h ${m} min`:`${m} min`; };
+function renderFast(){
+  const f=state.fast, hours=state.fastHours||16, now=Date.now();
+  $("#fastPlan").textContent = `${hours}:${24-hours}`;
+  if(f){
+    const el=now-f.start, goal=f.hours*36e5, left=goal-el;
+    $("#fastStat").innerHTML = `${hm(el)} <small>fasted</small>`;
+    $("#fastBar").style.width = Math.min(el/goal*100,100)+"%";
+    $("#fastBar").style.background = left<=0 ? "var(--accent)" : "var(--steps)";
+    $("#fastInfo").textContent = left>0 ? `${hm(left)} to go · started ${new Date(f.start).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}` : `Goal reached 🎉 · you can eat from ${new Date(f.start+goal).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}`;
+    $("#fastBtns").innerHTML = `<button class="btn" data-fast="end">End fast</button><button class="chip" data-fast="cancel">Discard</button>`;
+  } else {
+    const last=state.fasts[state.fasts.length-1];
+    const week=state.fasts.filter(x=>x.end>now-7*864e5);
+    $("#fastStat").innerHTML = `<small>Not fasting</small>`;
+    $("#fastBar").style.width="0";
+    $("#fastInfo").textContent = last ? `Last fast ${hm(last.end-last.start)} · ${week.length} this week` : "Start a fast after your last meal; the timer keeps counting while the app is closed.";
+    $("#fastBtns").innerHTML = `<button class="btn" data-fast="start">Start fast</button>` + FAST_PLANS.map(h=>`<button class="chip ${h===hours?"on":""}" data-fasthours="${h}">${h}:${24-h}</button>`).join("");
+  }
+}
+setInterval(()=>{ if(state.fast && !$("#tab-today").classList.contains("hidden")) renderFast(); }, 60000);
+
 // ---------- render: history ----------
 function renderWeek(){
   const s=state.settings, ks=Array.from({length:7},(_,i)=>shift(todayKey(),i-6));
@@ -835,14 +932,43 @@ function renderWeek(){
   const avg=(arr,f)=>arr.length?arr.reduce((a,t)=>a+f(t),0)/arr.length:0;
   const tm=trendMap(), a=trendAt(ks[6],tm), b=trendAt(shift(ks[0],-1),tm), st=streaks();
   const wch = a!==null && b!==null ? a-b : null;
+  // expected change from the week's net balance vs the calorie goal (7,700 kcal ≈ 1 kg)
+  const lgKeys=ks.filter(logged), balance=lg.reduce((acc,t)=>acc+(t.kcal-t.burn-s.calGoal),0);
+  const paceKg = s.rate*7700/7*lg.length/7700; // what the chosen pace would do over these days
+  const best = lgKeys.length ? lgKeys.reduce((bk,k)=>Math.abs(totals(k).left)<Math.abs(totals(bk).left)?k:bk) : null;
+  const worst = lgKeys.length ? lgKeys.reduce((bk,k)=>totals(k).left<totals(bk).left?k:bk) : null;
+  const dn = k => parseKey(k).toLocaleDateString(undefined,{weekday:"short"});
   $("#weekStats").innerHTML = [
     [`${st.current} day${st.current===1?"":"s"}`, `Logging streak · best ${st.best}`],
-    [lg.length?fmt(avg(lg,t=>t.kcal)):"—", `Avg kcal · ${lg.filter(t=>t.left>=0).length} of ${lg.length} days on target`],
+    [lg.length?fmt(avg(lg,t=>t.kcal)):"—", `Avg eaten · ${lg.filter(t=>t.left>=0).length} of ${lg.length} days on target`],
+    [lg.length?fmt(avg(lg,t=>t.kcal-t.burn)):"—", `Avg net (eaten − burned) · goal ${fmt(s.calGoal)}`],
+    [lg.length?`${balance>0?"+":"−"}${fmt(Math.abs(balance))}`:"—", `Week vs goal · ≈ ${balance>0?"+":"−"}${(Math.abs(balance)/7700).toFixed(2)} kg${s.rate?` (pace aims for ${paceKg>0?"+":"−"}${Math.abs(paceKg).toFixed(2)})`:""}`],
+    [wch===null?"—":`${wch>0?"+":"−"}${Math.abs(wch).toFixed(1)} kg`, "Trend weight change (actual)"],
     [lg.length?fmt(avg(lg,t=>t.p))+" g":"—", `Avg protein · goal ${fmt(macroGoals().p)} g`],
     [fmt(avg(all,t=>t.water))+" ml", `Avg water · goal ${fmt(s.waterGoal)}`],
     [fmt(avg(all,t=>t.steps)), `Avg steps · goal ${fmt(s.stepGoal)}`],
-    [wch===null?"—":`${wch>0?"+":"−"}${Math.abs(wch).toFixed(1)} kg`, "Trend weight change"]
+    [best?dn(best):"—", best?`Closest to goal · ${fmt(totals(best).kcal)} kcal`:"Closest to goal"],
+    [worst?dn(worst):"—", worst?`${totals(worst).left<0?"Furthest over":"Lightest day"} · ${fmt(totals(worst).kcal)} kcal`:"Furthest over"],
   ].map(([v,l])=>`<div><b>${v}</b><span>${l}</span></div>`).join("");
+  renderCalendar();
+}
+// month calendar: each day coloured by how it went against the calorie goal
+let calMonth = todayKey().slice(0,7);
+function renderCalendar(){
+  const [y,m]=calMonth.split("-").map(Number), first=new Date(y,m-1,1), days=new Date(y,m,0).getDate(), today=todayKey();
+  $("#calTitle").textContent = first.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  const lead=(first.getDay()+6)%7, cells=[];
+  for(let i=0;i<lead;i++) cells.push(`<div class="cal pad"></div>`);
+  let under=0, over=0, n=0;
+  for(let d=1; d<=days; d++){
+    const k=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    if(k>today){ cells.push(`<div class="cal future"><span>${d}</span></div>`); continue; }
+    if(!logged(k)){ cells.push(`<button class="cal" data-goto="${k}"><span>${d}</span>${state.weights[k]?`<i>⚖</i>`:""}</button>`); continue; }
+    const t=totals(k), cls=t.left>=0?"under":"over"; n++; if(t.left>=0) under++; else over++;
+    cells.push(`<button class="cal ${cls} ${k===today?"today":""}" data-goto="${k}" title="${fmt(t.kcal)} kcal · ${t.left>=0?fmt(t.left)+" left":fmt(-t.left)+" over"}"><span>${d}</span><b>${fmt(t.kcal)}</b></button>`);
+  }
+  $("#calGrid").innerHTML = ["M","T","W","T","F","S","S"].map(x=>`<div class="cal hd">${x}</div>`).join("") + cells.join("");
+  $("#calNote").textContent = n ? `${n} day${n===1?"":"s"} logged · ${under} on target · ${over} over` : "No days logged this month yet.";
 }
 function renderHistory(){
   renderWeek();
@@ -997,7 +1123,7 @@ function bigFoods(){
     // recipes (recipes.js); nutrition per serve, calculated from the USDA values of the ingredients
     const RC=window.RECIPES;
     if(RC) RC.rows.forEach((r,ri)=>{ const lc=r[0].toLowerCase(), rcat=RC.cats[r[1]];
-      BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], ri, src:"recipe", lc, head:lc, img:recipeImg(r[0],rcat)}); });
+      BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], ri, src:"recipe", lc, head:lc, img:recipeImg(r[0],rcat), img2:window.RECIPE_IMG?window.RECIPE_IMG.per(r[0]):""}); });
     // the user's own recipes (per-serve values calculated from their ingredients)
     state.myRecipes.forEach(r=>{ const n=myRecipeNutrition(r), lc=r.title.toLowerCase();
       BIG.push({name:r.title, title:r.title, cat:`My recipe · serves ${r.serves}`, rcat:"My recipes", serves:r.serves, ingList:r.ings.map(i=>[i.name,i.g]),
@@ -1007,7 +1133,9 @@ function bigFoods(){
 }
 // dish illustration for a recipe (img/*.webp, chosen from the title); "" when the image set isn't loaded
 function recipeImg(title, cat){ return window.RECIPE_IMG ? window.RECIPE_IMG.src(window.RECIPE_IMG.pick(title, cat)) : ""; }
-const thumb = (f, cls) => f.img ? `<img class="${cls}" src="${f.img}" alt="" loading="lazy">` : "";
+// per-recipe picture when there is one, falling back to the dish-type picture if it fails to load
+const thumb = (f, cls) => f.img2 ? `<img class="${cls}" src="${f.img2}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${f.img}'">`
+  : f.img ? `<img class="${cls}" src="${f.img}" alt="" loading="lazy">` : "";
 function findRecipe(ri){ return bigFoods().find(x=>x.src==="recipe" && String(x.ri)===String(ri)); }
 function ingList(f){ return f.ingList || f.ings.map(([i,g])=>[window.RECIPES.ing[i][0], g]); }
 function invalidateFoods(){ BIG=null; RMAP=null; }
@@ -1240,7 +1368,7 @@ function searchFoods(){
   const q=$("#foodSearch").value.trim().toLowerCase();
   const mine = state.myFoods.map(f=>({...f,src:"mine"}));
   const combos = state.combos.map((c,i)=>({name:c.name,src:"combo",ci:i,n:c.items.length,kcal:c.items.reduce((a,f)=>a+f.kcal*f.qty,0)}));
-  if(!q){ results = [...combos, ...dedupe([...mine, ...recentFoods()])].slice(0,14); }
+  if(!q){ results = [...combos, ...dedupe([...mine, ...frequentFoods(), ...recentFoods()])].slice(0,16); }
   else{
     // country words ("whopper uk", "big mac usa") filter fast food by country instead of matching the name
     const COUNTRY={au:"australia",aus:"australia",australia:"australia",uk:"uk",britain:"uk",ireland:"ireland",ie:"ireland",
@@ -1256,7 +1384,7 @@ function searchFoods(){
     if(onlineQ===q) results=results.concat(onlineRes);
   }
   if(pinRecipe) results=[pinRecipe, ...results.filter(f=>f!==pinRecipe)];
-  const tag = f => f.src==="mine"?'<span class="tag">★ mine</span>':f.src==="recent"?'<span class="tag">recent</span>':
+  const tag = f => f.src==="mine"?'<span class="tag">★ mine</span>':f.src==="recent"?'<span class="tag">recent</span>':f.src==="frequent"?'<span class="tag">frequent</span>':
     f.src==="combo"?`<span class="tag">★ meal · ${f.n} item${f.n===1?"":"s"}</span>`:f.src==="online"?'<span class="tag">online</span>':
     f.src==="usda"||f.src==="ff"||f.src==="recipe"?`<span class="tag">${esc(f.cat)}</span>`:"";
   const onlineRow = q.length>=3 && onlineQ!==q ? `<div class="res online" data-online="1">Search online for “${esc(q)}”…</div>` : "";
@@ -1448,6 +1576,13 @@ document.addEventListener("click", e=>{
     render(); return;
   }
   if(ds.gotab){ $(`[data-tab="${ds.gotab}"]`).click(); return; }
+  if(ds.fast){
+    if(ds.fast==="start"){ state.fast={start:Date.now(),hours:state.fastHours||16}; toast(`Fasting · goal ${state.fastHours||16} h`); }
+    else if(ds.fast==="end"){ const f=state.fast; state.fasts.push({start:f.start,end:Date.now(),hours:f.hours}); state.fasts=state.fasts.slice(-60); state.fast=null; toast(`Fast ended · ${hm(Date.now()-f.start)}`); }
+    else if(ds.fast==="cancel"){ if(!confirm("Discard this fast without saving it?")) return; state.fast=null; }
+    save(); renderFast(); return;
+  }
+  if(ds.fasthours){ state.fastHours=+ds.fasthours; save(); renderFast(); return; }
   if(ds.recipe!==undefined){ openRecipe(ds.recipe); return; }
   if(ds.editrecipe!==undefined){ closeModals(); openMyRecipe(ds.editrecipe); return; }
   if(ds.delrecipe!==undefined){ deleteMyRecipe(ds.delrecipe); return; }
@@ -1476,6 +1611,17 @@ $("#prevDay").onclick=()=>{ cur=shift(cur,-1); render(); };
 $("#nextDay").onclick=()=>{ if(cur<todayKey()){ cur=shift(cur,1); render(); } };
 $("#goToday").onclick=()=>{ cur=todayKey(); render(); };
 $("#addFoodBtn").onclick=()=>openFood();
+$("#calPrev").onclick=()=>{ const [y,m]=calMonth.split("-").map(Number); const d=new Date(y,m-2,1); calMonth=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); renderCalendar(); };
+$("#calNext").onclick=()=>{ const [y,m]=calMonth.split("-").map(Number); const d=new Date(y,m,1); const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); if(k<=todayKey().slice(0,7)){ calMonth=k; renderCalendar(); } };
+$("#quickAddBtn").onclick=()=>{ $("#qMeal").innerHTML=MEALS.map(m=>`<option>${m}</option>`).join(""); $("#qMeal").value=cur===todayKey()?defaultMeal():"Lunch"; ["#qName","#qKcal","#qP","#qC","#qF"].forEach(s=>$(s).value=""); $("#quickModal").classList.add("open"); $("#qKcal").focus(); };
+$("#qSubmit").onclick=()=>{
+  const kcal=num($("#qKcal").value); if(!kcal){ toast("Enter the calories"); return; }
+  const name=$("#qName").value.trim()||"Quick add";
+  day().foods.push({id:uid(),meal:$("#qMeal").value,name,kcal,p:num($("#qP").value),c:num($("#qC").value),f:num($("#qF").value),qty:1});
+  save(); closeModals(); render(); toast(`Added ${fmt(kcal)} kcal to ${$("#qMeal").value}`);
+};
+$("#qKcal").onkeydown=e=>{ if(e.key==="Enter") $("#qSubmit").click(); };
+let noteT; $("#dayNote").oninput=()=>{ clearTimeout(noteT); noteT=setTimeout(()=>{ day().note=$("#dayNote").value.trim(); save(); }, 400); };
 $("#addExBtn").onclick=openEx;
 $("#foodSearch").oninput=()=>{ pinRecipe=null; searchFoods(); };
 $("#recipeSearch").oninput=renderRecipes;

@@ -19,6 +19,17 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   // food database lookups always go to the network
   if (url.hostname.endsWith("openfoodfacts.org")) return;
+  // per-recipe pictures never change: cache-first, no background refresh
+  if (url.origin === location.origin && url.pathname.includes("/img/r/")) {
+    e.respondWith(caches.open(VERSION).then(async cache => {
+      const hit = await cache.match(e.request);
+      if (hit) return hit;
+      const res = await fetch(e.request);
+      if (res.ok) cache.put(e.request, res.clone());
+      return res;
+    }));
+    return;
+  }
   if (url.origin === location.origin || e.request.url === ZXING) {
     // serve from cache straight away, refresh it in the background
     e.respondWith(caches.open(VERSION).then(async cache => {
