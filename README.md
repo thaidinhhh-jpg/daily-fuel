@@ -56,6 +56,22 @@ nutrition (websites and nutrition PDFs), collected October 2026:
 
 Add a country to a search to filter by it, e.g. "whopper uk" or "big mac usa".
 
+## Meal plan & shopping list
+The Plan tab shows a week (Monday to Sunday). Add recipes to any meal of any day and
+the day's calories and macros are totalled against your goal; "Log day" copies the planned
+items into that day's food log. Recipes can also be sent to the plan from the food search
+("+ Add to meal plan" under a recipe's ingredients). The shopping list totals the
+ingredients of every planned recipe for the week (or one day), scaled to the serves you
+planned; tick items off as you shop (ticks are remembered per week), copy the list or
+share it to another app.
+
+## Backups
+Everything is stored in the browser, so Settings → Backup has **Export backup** (a JSON
+file), **Share backup…** on phones (send the file to yourself), **Import backup** with a
+choice of *Merge* (keeps what's here and adds the backup's days) or *Replace*, and
+**Undo last import**. The Today tab reminds you when it's been more than two weeks since
+a backup. **Export CSV** gives a spreadsheet of every logged item.
+
 ## Recipes
 `recipes.js` holds 2,000 recipes across 25 categories (breakfast, lunch, salads, soups,
 Aussie classics, pasta, Asian, Mexican/Indian/Middle Eastern, vegetarian & vegan, meal
