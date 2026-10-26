@@ -90,6 +90,6 @@ window.RECIPE_IMG = (function(){
   const LIST = ["porridge","eggs-toast","pancakes","yoghurt-bowl","smoothie","coffee","sandwich","wrap","toastie","burger","salad","grain-bowl","soup","noodle-soup","pasta","creamy-pasta","lasagne","pizza","risotto","stir-fry","noodles","curry","green-curry","fried-rice","dumplings","tacos","burrito","nachos","kebabs","roast-dinner","steak","schnitzel","fish","fish-chips","prawns","sausages","pie","casserole","meatballs","veggie-bake","tofu","snack-balls","muffin","cake","cookies","dessert","fruit","drink"];
   // per-recipe pictures live in img/r/<slug>.webp once generated; the dish-type picture is the fallback
   const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
-  const perRecipe = false;
+  const perRecipe = true;
   return { pick, LIST, slug, perRecipe, src: name => "img/" + name + ".webp", per: title => perRecipe ? "img/r/" + slug(title) + ".webp" : "" };
 })();
