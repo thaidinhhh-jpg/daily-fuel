@@ -185,6 +185,13 @@ th{font-size:12px;color:var(--muted);font-weight:600}
 .shoprow span:nth-of-type(1){flex:1}
 .shoprow.done span{text-decoration:line-through;color:var(--muted)}
 h2 .btns{display:inline-flex}
+.mrrow{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mrrow span:first-child{flex:1;min-width:0}
+.mrrow input{width:76px}
+.mrrow .pdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px}
+.rcard .rtools{display:flex;gap:10px;margin-top:6px}
+.rcard .rtools .link{font-size:12px}
+.rcard.mine{border-style:dashed}
 .streak{font-size:13px;font-weight:600;color:var(--steps);background:var(--steps-soft);padding:3px 10px;border-radius:99px}
 .week{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 @media (max-width:760px){.week{grid-template-columns:repeat(2,1fr)}}
@@ -324,7 +331,7 @@ h2 .btns{display:inline-flex}
   <!-- RECIPES -->
   <section id="tab-recipes" class="hidden">
     <div class="card">
-      <h2>Recipes <span class="pill" id="recipeCount"></span></h2>
+      <h2>Recipes <span class="pill" id="recipeCount"></span><button class="btn" id="newRecipeBtn" style="margin-left:auto">+ My recipe</button></h2>
       <div class="searchrow"><input id="recipeSearch" placeholder="Search recipes (e.g. chicken curry, protein, vegan, slow cooker)…" autocomplete="off"></div>
       <div class="btns" id="recipeCats" style="margin-top:10px"></div>
       <div class="rgrid" id="recipeList"></div>
@@ -391,6 +398,8 @@ h2 .btns{display:inline-flex}
           <div class="f"><label>Steps goal</label><input type="number" data-set="stepGoal"></div>
         </div>
         <p class="muted" style="font-size:12px;margin:10px 0 0" id="suggestNote"></p>
+        <div class="suggest" style="margin-top:12px"><div><span class="muted" style="font-size:12px">Adaptive estimate from your log</span><br><b id="adaptiveKcal">—</b></div><button class="btn ghost" id="applyAdaptive">Use this</button></div>
+        <p class="muted" style="font-size:12px;margin:10px 0 0" id="adaptiveNote"></p>
       </div>
       <div class="card span12">
         <h2>Macros <span class="pill" id="macroSum"></span></h2>
@@ -475,6 +484,30 @@ h2 .btns{display:inline-flex}
     <div class="searchrow" style="margin-top:8px"><input id="planSearch" placeholder="Search recipes…" autocomplete="off"></div>
     <div class="results" id="planResults"></div>
     <p class="muted" style="font-size:12px;margin:10px 0 0">Tap a recipe to add one serve to the chosen day and meal. Add it again for a second serve.</p>
+  </div>
+</div>
+
+<!-- My recipe editor -->
+<div class="modal" id="myRecipeModal">
+  <div class="sheet">
+    <h3><span id="mrTitle">New recipe</span><button class="x" data-close>&times;</button></h3>
+    <div class="fields">
+      <div class="w4" style="grid-column:span 3"><label>Recipe name</label><input id="mrName" placeholder="e.g. Mum's spag bol"></div>
+      <div><label>Serves</label><input type="number" id="mrServes" value="4" min="0.5" step="0.5"></div>
+    </div>
+    <label style="font-size:12px;color:var(--muted);display:block;margin:10px 0 3px">Add ingredients (searches the food list; amounts in grams)</label>
+    <div class="searchrow"><input id="mrSearch" placeholder="Search an ingredient, e.g. chicken breast raw…" autocomplete="off"></div>
+    <div class="results hidden" id="mrResults" style="max-height:160px"></div>
+    <div id="mrIngs" style="margin-top:8px"></div>
+    <p style="font-size:13px;margin:8px 0" id="mrTotals"></p>
+    <label style="font-size:12px;color:var(--muted);display:block;margin:6px 0 3px">Method (optional — one step per line)</label>
+    <textarea id="mrMethod" rows="4" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+    <div class="actions">
+      <button class="btn ghost hidden" id="mrDelete" style="margin-right:auto;color:var(--burn)">Delete</button>
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="mrSave">Save recipe</button>
+    </div>
+    <p class="muted" style="font-size:11px;margin:10px 0 0">Nutrition per serve is calculated from the ingredients' USDA values, the same way as the built-in recipes. Weigh ingredients raw where you can.</p>
   </div>
 </div>
 
@@ -569,7 +602,7 @@ const MACRO_PRESETS = [["Balanced",30,40,30],["High protein",40,35,25],["Low car
 let state = load();
 let cur = todayKey();
 function fresh(s){ s=s||{}; return {settings:{...DEFAULTS,...s.settings},days:s.days||{},myFoods:s.myFoods||[],weights:s.weights||{},
-  combos:s.combos||[],barcodes:s.barcodes||{},theme:s.theme||"",plan:s.plan||{},shop:s.shop||{},backupAt:s.backupAt||0}; }
+  combos:s.combos||[],barcodes:s.barcodes||{},theme:s.theme||"",plan:s.plan||{},shop:s.shop||{},backupAt:s.backupAt||0,myRecipes:s.myRecipes||[]}; }
 // merge a backup into the current data: keep both sets of days (entries de-duplicated by id), weights, foods and meals
 function mergeState(cur, inc){
   const out=fresh(cur);
@@ -583,6 +616,7 @@ function mergeState(cur, inc){
   const mf=names(out.myFoods); (inc.myFoods||[]).forEach(f=>{ if(!mf.has(f.name.toLowerCase())) out.myFoods.push(f); });
   const mc=names(out.combos); (inc.combos||[]).forEach(c=>{ if(!mc.has(c.name.toLowerCase())) out.combos.push(c); });
   Object.assign(out.barcodes, inc.barcodes||{});
+  const mr=new Set(out.myRecipes.map(r=>r.id)); (inc.myRecipes||[]).forEach(r=>{ if(!mr.has(r.id)) out.myRecipes.push(r); });
   Object.keys(inc.plan||{}).forEach(k=>{ if(!out.plan[k]||!out.plan[k].length) out.plan[k]=inc.plan[k]; });
   return out;
 }
@@ -649,6 +683,21 @@ function streaks(){
 function macroGoals(){
   const s=state.settings;
   return {p:s.calGoal*s.macroP/100/4, c:s.calGoal*s.macroC/100/4, f:s.calGoal*s.macroF/100/9};
+}
+// adaptive goal: what you actually maintained on over the last 3 weeks = average net intake adjusted for the weight trend
+function adaptiveGoal(){
+  const end=todayKey(), start=shift(end,-21), s=state.settings;
+  const days=Object.keys(state.days).filter(k=>k>start&&k<=end&&logged(k)).sort();
+  const wks=Object.keys(state.weights).filter(k=>k>=start&&k<=end).sort();
+  const span = wks.length ? (parseKey(wks[wks.length-1])-parseKey(wks[0]))/864e5 : 0;
+  if(days.length<10 || wks.length<4 || span<10) return {ok:false, days:days.length, wks:wks.length, span};
+  const tm=trendMap(), xs=wks.map(k=>(parseKey(k)-parseKey(wks[0]))/864e5), ys=wks.map(k=>tm[k]);
+  const mx=xs.reduce((a,b)=>a+b,0)/xs.length, my=ys.reduce((a,b)=>a+b,0)/ys.length;
+  const slope = xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0) / (xs.reduce((a,x)=>a+(x-mx)**2,0)||1);   // kg per day
+  const avgNet = days.reduce((a,k)=>{ const t=totals(k); return a+t.kcal-t.burn; },0)/days.length;
+  const maint = avgNet - slope*7700;
+  const suggest = Math.max(+s.sex?1500:1200, Math.round((maint + s.rate*7700/7)/10)*10);
+  return {ok:true, days:days.length, wks:wks.length, span, avgNet, slopeWeek:slope*7, maint, suggest};
 }
 function body(k){
   const s=state.settings, w=currentWeight(k), h=s.heightCm;
@@ -869,6 +918,14 @@ function renderSettings(){
   $("#applySuggest").disabled = Math.round(s.calGoal)===b.suggest;
   $("#applySuggest").style.opacity = $("#applySuggest").disabled ? .5 : 1;
   $("#suggestNote").textContent = `Maintenance ${fmt(b.tdee)} kcal ${s.rate<0?"−":"+"} ${fmt(Math.abs(s.rate*7700/7))} kcal/day for your pace (Mifflin-St Jeor formula). This is an estimate — adjust after a few weeks based on your weight trend.`;
+  const a = adaptiveGoal();
+  $("#adaptiveKcal").textContent = a.ok ? fmt(a.suggest)+" kcal" : "—";
+  $("#applyAdaptive").classList.toggle("hidden", !a.ok);
+  $("#applyAdaptive").disabled = a.ok && Math.round(s.calGoal)===a.suggest;
+  $("#applyAdaptive").style.opacity = $("#applyAdaptive").disabled ? .5 : 1;
+  $("#adaptiveNote").textContent = a.ok
+    ? `Over the last 3 weeks (${a.days} logged days, ${a.wks} weigh-ins) you averaged ${fmt(a.avgNet)} kcal net and your trend weight moved ${a.slopeWeek<0?"−":"+"}${Math.abs(a.slopeWeek).toFixed(2)} kg/week, so you're actually maintaining on about ${fmt(a.maint)} kcal. For your chosen pace that means ${fmt(a.suggest)} kcal/day. This beats the formula once you have a few weeks of honest logging.`
+    : `Needs at least 10 logged days and 4 weigh-ins spread over 10+ days in the last 3 weeks (you have ${a.days} days and ${a.wks} weigh-ins). Keep logging and weighing in and this will estimate your real maintenance from results rather than a formula.`;
   const sum = s.macroP+s.macroC+s.macroF;
   $("#macroSum").textContent = `Total ${sum}%`;
   $("#macroSum").style.color = sum===100 ? "var(--accent)" : "var(--burn)";
@@ -935,8 +992,65 @@ function bigFoods(){
     const RC=window.RECIPES;
     if(RC) RC.rows.forEach((r,ri)=>{ const lc=r[0].toLowerCase(), rcat=RC.cats[r[1]];
       BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], ri, src:"recipe", lc, head:lc}); });
+    // the user's own recipes (per-serve values calculated from their ingredients)
+    state.myRecipes.forEach(r=>{ const n=myRecipeNutrition(r), lc=r.title.toLowerCase();
+      BIG.push({name:r.title, title:r.title, cat:`My recipe · serves ${r.serves}`, rcat:"My recipes", serves:r.serves, ingList:r.ings.map(i=>[i.name,i.g]),
+        method:r.method||"", kcal:n.kcal, p:n.p, c:n.c, f:n.f, ri:"m"+r.id, src:"recipe", mine:true, lc, head:lc}); });
   }
   return BIG;
+}
+function findRecipe(ri){ return bigFoods().find(x=>x.src==="recipe" && String(x.ri)===String(ri)); }
+function ingList(f){ return f.ingList || f.ings.map(([i,g])=>[window.RECIPES.ing[i][0], g]); }
+function invalidateFoods(){ BIG=null; RMAP=null; }
+function myRecipeNutrition(r){
+  const t={kcal:0,p:0,c:0,f:0};
+  r.ings.forEach(i=>{ const k=i.g/100; t.kcal+=i.kcal*k; t.p+=(i.p||0)*k; t.c+=(i.c||0)*k; t.f+=(i.f||0)*k; });
+  const s=r.serves||1; return {kcal:t.kcal/s, p:t.p/s, c:t.c/s, f:t.f/s, total:t};
+}
+// ---------- my recipe editor ----------
+let mr=null;
+function openMyRecipe(id){
+  const ex=state.myRecipes.find(r=>r.id===id);
+  mr = ex ? JSON.parse(JSON.stringify(ex)) : {id:uid(), title:"", serves:4, ings:[], method:""};
+  $("#mrTitle").textContent = ex ? "Edit recipe" : "New recipe";
+  $("#mrName").value=mr.title; $("#mrServes").value=mr.serves; $("#mrMethod").value=(mr.method||"").split(" | ").join("\n");
+  $("#mrSearch").value=""; $("#mrResults").classList.add("hidden"); $("#mrDelete").classList.toggle("hidden", !ex);
+  renderMrIngs(); $("#myRecipeModal").classList.add("open"); $(ex?"#mrSearch":"#mrName").focus();
+}
+function renderMrIngs(){
+  $("#mrIngs").innerHTML = mr.ings.length ? mr.ings.map((i,n)=>`<div class="mrrow"><span>${esc(i.name)}</span><input type="number" min="0" step="1" value="${i.g}" data-mrg="${n}" aria-label="grams"> g<span class="muted" style="width:70px;text-align:right">${fmt(i.kcal*i.g/100)} kcal</span><button class="pdel" data-mrdel="${n}" aria-label="Remove">&times;</button></div>`).join("")
+    : `<div class="empty">No ingredients yet — search above and tap one to add it.</div>`;
+  const n=myRecipeNutrition({...mr, serves:num($("#mrServes").value)||1});
+  $("#mrTotals").innerHTML = mr.ings.length ? `Whole recipe <b>${fmt(n.total.kcal)}</b> kcal · per serve <b>${fmt(n.kcal)}</b> kcal · P ${r1(n.p)} g · C ${r1(n.c)} g · F ${r1(n.f)} g` : "";
+}
+function searchMrIngredients(){
+  const q=$("#mrSearch").value.trim().toLowerCase(), box=$("#mrResults");
+  if(q.length<2){ box.classList.add("hidden"); return; }
+  const alts=q.split(/\s+/).filter(Boolean).map(w=>SYN[w]||[w]);
+  const list=bigFoods().filter(f=>f.src==="usda" && alts.every(a=>a.some(x=>f.lc.includes(x)))).map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).slice(0,12).map(x=>x[0]);
+  box.innerHTML = list.length ? list.map((f,i)=>`<div class="res" data-mrpick="${esc(f.name)}"><span>${esc(f.name)}<span class="tag">${esc(f.cat)}</span></span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal/100 g</span></div>`).join("") : `<div class="empty" style="padding:10px">No match — try another word.</div>`;
+  box.classList.remove("hidden");
+}
+function mrAdd(name){
+  const f=bigFoods().find(x=>x.src==="usda"&&x.name===name); if(!f) return;
+  // default amount: the first listed portion, else 100 g
+  const por=f.por ? +f.por.split(";")[0].split("|")[1] : 100;
+  mr.ings.push({name:f.name, g:Math.round(por)||100, kcal:f.kcal, p:f.p, c:f.c, f:f.f});
+  $("#mrSearch").value=""; $("#mrResults").classList.add("hidden"); renderMrIngs(); $("#mrSearch").focus();
+}
+function saveMyRecipe(){
+  mr.title=$("#mrName").value.trim(); mr.serves=num($("#mrServes").value)||1;
+  mr.method=$("#mrMethod").value.split("\n").map(s=>s.trim()).filter(Boolean).join(" | ");
+  if(!mr.title){ toast("Give the recipe a name"); return; }
+  if(!mr.ings.length){ toast("Add at least one ingredient"); return; }
+  const i=state.myRecipes.findIndex(r=>r.id===mr.id);
+  if(i>=0) state.myRecipes[i]=mr; else state.myRecipes.push(mr);
+  save(); invalidateFoods(); closeModals(); rcat="My recipes"; renderRecipes(); toast(`Saved “${mr.title}” · ${fmt(myRecipeNutrition(mr).kcal)} kcal per serve`);
+}
+function deleteMyRecipe(id){
+  const r=state.myRecipes.find(x=>x.id===id); if(!r) return;
+  if(!confirm(`Delete “${r.title}”?`)) return;
+  state.myRecipes=state.myRecipes.filter(x=>x.id!==id); save(); invalidateFoods(); closeModals(); renderRecipes(); toast("Recipe deleted");
 }
 function recipeBases(f){
   const out=[{label:"1 serve", kcal:f.kcal, p:f.p, c:f.c, f:f.f}];
@@ -947,10 +1061,11 @@ function showRecipe(f){
   const RC=window.RECIPES, box=$("#recipeInfo");
   if(!f){ box.classList.add("hidden"); box.innerHTML=""; return; }
   box.innerHTML = `<b>${esc(f.title)}</b> <span class="muted">· ${esc(f.rcat)} · serves ${f.serves}</span>
-    <ul>${f.ings.map(([i,g])=>`<li>${fmt(g)} g ${esc(RC.ing[i][0])}</li>`).join("")}</ul>
+    <ul>${ingList(f).map(([n,g])=>`<li>${fmt(g)} g ${esc(n)}</li>`).join("")}</ul>
     ${f.method.includes(" | ") ? `<ol class="steps">${f.method.split(" | ").map(s=>`<li>${esc(s)}</li>`).join("")}</ol>` : `<p>${esc(f.method)}</p>`}
     <p class="muted">Per serve: ${fmt(f.kcal)} kcal · P ${r1(f.p)} g · C ${r1(f.c)} g · F ${r1(f.f)} g — calculated from USDA ingredient values (raw weights).</p>
-    <button class="btn ghost" data-planfor="${f.ri}" style="padding:5px 10px;font-size:12px">+ Add to meal plan</button>`;
+    <button class="btn ghost" data-planfor="${f.ri}" style="padding:5px 10px;font-size:12px">+ Add to meal plan</button>
+    ${f.mine?` <button class="btn ghost" data-editrecipe="${esc(f.ri.slice(1))}" style="padding:5px 10px;font-size:12px">Edit recipe</button>`:""}`;
   box.classList.remove("hidden");
 }
 
@@ -995,7 +1110,7 @@ function renderPlanResults(){
     : `<div class="empty" style="padding:10px">No recipes match.</div>`;
 }
 function planAdd(ri){
-  const f=bigFoods().find(x=>x.src==="recipe"&&x.ri===ri); if(!f) return;
+  const f=findRecipe(ri); if(!f) return;
   const k=$("#planDay").value, m=$("#planMeal").value, items=state.plan[k]=state.plan[k]||[];
   const ex=items.find(it=>it.meal===m&&it.t===f.title);
   if(ex) ex.q=Math.round((ex.q+1)*4)/4; else items.push({t:f.title,q:1,meal:m,kcal:f.kcal,p:f.p,c:f.c,f:f.f});
@@ -1011,7 +1126,7 @@ function logPlanDay(k){
 function shopItems(){
   const days=shopSel?[shopSel]:weekDays(), RC=window.RECIPES, agg={};
   if(RC) days.forEach(k=>(state.plan[k]||[]).forEach(it=>{ const f=recipeMap()[it.t.toLowerCase()]; if(!f) return;
-    f.ings.forEach(([i,g])=>{ const n=RC.ing[i][0]; agg[n]=(agg[n]||0)+g*it.q/f.serves; }); }));
+    ingList(f).forEach(([n,g])=>{ agg[n]=(agg[n]||0)+g*it.q/f.serves; }); }));
   return Object.entries(agg).sort((a,b)=>a[0].localeCompare(b[0]));
 }
 function shopQty(n,g){
@@ -1035,18 +1150,20 @@ function renderRecipes(){
   const RC=window.RECIPES; if(!RC) return;
   $("#recipeCount").textContent = RC.rows.length.toLocaleString()+" recipes";
   $("#recipeCats").innerHTML = [`<button class="chip ${rcat===""?"on":""}" data-rcat="">All</button>`]
-    .concat(RC.cats.map(c=>`<button class="chip ${rcat===c?"on":""}" data-rcat="${esc(c)}">${esc(c)}</button>`)).join("");
+    .concat(RC.cats.map(c=>`<button class="chip ${rcat===c?"on":""}" data-rcat="${esc(c)}">${esc(c)}</button>`))
+    .concat(state.myRecipes.length?[`<button class="chip ${rcat==="My recipes"?"on":""}" data-rcat="My recipes">★ My recipes (${state.myRecipes.length})</button>`]:[]).join("");
   const q=$("#recipeSearch").value.trim().toLowerCase(), alts=q.split(/\s+/).filter(Boolean).map(w=>SYN[w]||[w]);
   let list=bigFoods().filter(f=>f.src==="recipe" && (!rcat||f.rcat===rcat) && alts.every(a=>a.some(x=>f.lc.includes(x)||f.rcat.toLowerCase().includes(x))));
   if(q) list=list.map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
   const shown=list.slice(0,150);
-  $("#recipeList").innerHTML = shown.length ? shown.map(f=>`<div class="rcard" data-recipe="${f.ri}"><div class="rt">${esc(f.title)}</div>
-      <div class="rm">${esc(f.rcat)} · serves ${f.serves}</div><div class="rn"><b>${fmt(f.kcal)}</b> kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</div></div>`).join("")
+  $("#recipeList").innerHTML = shown.length ? shown.map(f=>`<div class="rcard ${f.mine?"mine":""}" data-recipe="${f.ri}"><div class="rt">${esc(f.title)}</div>
+      <div class="rm">${esc(f.rcat)} · serves ${f.serves}</div><div class="rn"><b>${fmt(f.kcal)}</b> kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</div>
+      ${f.mine?`<div class="rtools"><button class="link" data-editrecipe="${esc(f.ri.slice(1))}">Edit</button><button class="link" data-delrecipe="${esc(f.ri.slice(1))}" style="color:var(--burn)">Delete</button></div>`:""}</div>`).join("")
       + (list.length>shown.length ? `<div class="empty">Showing 150 of ${list.length.toLocaleString()} — type more to narrow it down.</div>` : "")
     : `<div class="empty">No recipes match.</div>`;
 }
 function openRecipe(ri){
-  const f=bigFoods().find(x=>x.src==="recipe"&&x.ri===ri); if(!f) return;
+  const f=findRecipe(ri); if(!f) return;
   openFood(); pinRecipe=f; $("#foodSearch").value=f.title; searchFoods(); pick(0);
 }
 function ffBases(f){
@@ -1309,7 +1426,7 @@ function closeModal(m){ if(m.id==="scanModal") stopScan(); m.classList.remove("o
 
 // ---------- events ----------
 document.addEventListener("click", e=>{
-  const t=e.target.closest("button,[data-res],[data-online],[data-recipe],[data-planpick]"); if(!t){ if(e.target.classList.contains("modal")) closeModal(e.target); return; }
+  const t=e.target.closest("button,[data-res],[data-online],[data-recipe],[data-planpick],[data-mrpick]"); if(!t){ if(e.target.classList.contains("modal")) closeModal(e.target); return; }
   const ds=t.dataset;
   if(ds.online){ searchOnline(); return; }
   if(ds.basis!==undefined){ chooseBasis(+ds.basis); return; }
@@ -1322,11 +1439,15 @@ document.addEventListener("click", e=>{
     render(); return;
   }
   if(ds.gotab){ $(`[data-tab="${ds.gotab}"]`).click(); return; }
-  if(ds.recipe!==undefined){ openRecipe(+ds.recipe); return; }
+  if(ds.recipe!==undefined){ openRecipe(ds.recipe); return; }
+  if(ds.editrecipe!==undefined){ closeModals(); openMyRecipe(ds.editrecipe); return; }
+  if(ds.delrecipe!==undefined){ deleteMyRecipe(ds.delrecipe); return; }
+  if(ds.mrpick!==undefined){ mrAdd(ds.mrpick); return; }
+  if(ds.mrdel!==undefined){ mr.ings.splice(+ds.mrdel,1); renderMrIngs(); return; }
   if(ds.rcat!==undefined){ rcat=ds.rcat; renderRecipes(); return; }
   if(ds.planadd){ const [k,m]=ds.planadd.split("|"); openPlanPicker(k,m); return; }
-  if(ds.planfor!==undefined){ const f=bigFoods().find(x=>x.src==="recipe"&&x.ri===+ds.planfor); closeModals(); openPlanPicker(cur, $("#fMeal").value, f); return; }
-  if(ds.planpick!==undefined){ planAdd(+ds.planpick); return; }
+  if(ds.planfor!==undefined){ const f=findRecipe(ds.planfor); closeModals(); openPlanPicker(cur, $("#fMeal").value, f); return; }
+  if(ds.planpick!==undefined){ planAdd(ds.planpick); return; }
   if(ds.plandel){ const [k,i]=ds.plandel.split("|"); state.plan[k].splice(+i,1); if(!state.plan[k].length) delete state.plan[k]; save(); renderPlan(); return; }
   if(ds.planlog){ logPlanDay(ds.planlog); return; }
   if(ds.shopsel!==undefined){ shopSel=ds.shopsel; renderShop(); return; }
@@ -1349,6 +1470,15 @@ $("#addFoodBtn").onclick=()=>openFood();
 $("#addExBtn").onclick=openEx;
 $("#foodSearch").oninput=()=>{ pinRecipe=null; searchFoods(); };
 $("#recipeSearch").oninput=renderRecipes;
+$("#newRecipeBtn").onclick=()=>openMyRecipe();
+$("#mrSearch").oninput=searchMrIngredients;
+$("#mrSearch").onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); const r=$("#mrResults .res"); if(r) mrAdd(r.dataset.mrpick); } };
+$("#mrServes").oninput=renderMrIngs;
+$("#mrSave").onclick=saveMyRecipe;
+$("#mrDelete").onclick=()=>deleteMyRecipe(mr.id);
+document.addEventListener("input", e=>{ const g=e.target.closest("[data-mrg]"); if(!g) return; mr.ings[+g.dataset.mrg].g=num(g.value); const n=myRecipeNutrition({...mr, serves:num($("#mrServes").value)||1});
+  g.parentElement.querySelector(".muted").textContent=fmt(mr.ings[+g.dataset.mrg].kcal*mr.ings[+g.dataset.mrg].g/100)+" kcal";
+  $("#mrTotals").innerHTML=`Whole recipe <b>${fmt(n.total.kcal)}</b> kcal · per serve <b>${fmt(n.kcal)}</b> kcal · P ${r1(n.p)} g · C ${r1(n.c)} g · F ${r1(n.f)} g`; });
 $("#planSearch").oninput=renderPlanResults;
 $("#planPrev").onclick=()=>{ planStart=shift(planStart,-7); shopSel=""; renderPlan(); };
 $("#planNext").onclick=()=>{ planStart=shift(planStart,7); shopSel=""; renderPlan(); };
@@ -1383,6 +1513,7 @@ $("#stepsSet").onkeydown=e=>{ if(e.key==="Enter") $("#stepsSave").click(); };
 $("#histMetric").onchange=renderHistory;
 $$("[data-set]").forEach(el=>el.onchange=()=>{ const v=+el.value||0; state.settings[el.dataset.set]=el.dataset.neg?v:Math.max(0,v); save(); render(); toast("Saved"); });
 $("#applySuggest").onclick=()=>{ state.settings.calGoal=body().suggest; save(); render(); toast("Calorie goal updated"); };
+$("#applyAdaptive").onclick=()=>{ const a=adaptiveGoal(); if(!a.ok) return; state.settings.calGoal=a.suggest; save(); render(); toast("Calorie goal set from your results"); };
 $("#weightSave").onclick=()=>{ const v=num($("#weightIn").value); if(!v||v>500){ toast("Enter your weight in kg"); return; }
   state.weights[cur]=Math.round(v*10)/10; $("#weightIn").value=""; save(); render(); toast(`Logged ${state.weights[cur]} kg`); };
 $("#weightIn").onkeydown=e=>{ if(e.key==="Enter") $("#weightSave").click(); };
@@ -1402,7 +1533,7 @@ function finishImport(mode){
   if(!pendingImport) return;
   try{ localStorage.setItem(KEY+".prev", JSON.stringify({at:Date.now(), state})); }catch(e){}
   state = mode==="merge" ? mergeState(state, pendingImport) : fresh(pendingImport);
-  pendingImport=null; RMAP=null; save(); applyTheme(); closeModals(); render();
+  pendingImport=null; invalidateFoods(); save(); applyTheme(); closeModals(); render();
   toast(mode==="merge" ? "Backup merged in" : "Backup restored");
 }
 $("#importMerge").onclick=()=>finishImport("merge");

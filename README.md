@@ -56,6 +56,20 @@ nutrition (websites and nutrition PDFs), collected October 2026:
 
 Add a country to a search to filter by it, e.g. "whopper uk" or "big mac usa".
 
+## Your own recipes
+Recipes → **+ My recipe**: name it, set the serves, search the food list for each
+ingredient and type the grams; the per-serve calories and macros are calculated the same
+way as the built-in recipes (USDA values, raw weights). Your recipes show up under
+**★ My recipes**, in the food search, and can go on the meal plan and shopping list like
+any other. Edit or delete them from their card; they're included in backups.
+
+## Adaptive calorie goal
+Settings → Calorie goal shows an **Adaptive estimate** once you have 10+ logged days and
+4+ weigh-ins over 10+ days in the last three weeks. It takes your average net intake
+(food minus burned) and the slope of your trend weight, works out what you were actually
+maintaining on (7,700 kcal per kg), then applies your chosen pace. It's a better guide
+than the formula because it comes from your results; **Use this** copies it into your goal.
+
 ## Meal plan & shopping list
 The Plan tab shows a week (Monday to Sunday). Add recipes to any meal of any day and
 the day's calories and macros are totalled against your goal; "Log day" copies the planned
