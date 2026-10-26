@@ -56,6 +56,12 @@ nutrition (websites and nutrition PDFs), collected October 2026:
 
 Add a country to a search to filter by it, e.g. "whopper uk" or "big mac usa".
 
+## Recipe pictures
+`img/` holds 48 dish illustrations (400 px WebP, about 1 MB in total, cached offline).
+`recipe-images.js` picks one for each recipe from its title — a curry gets the curry
+picture, a smoothie the smoothie, and so on — so they show the type of dish, not a photo of
+that exact recipe. Your own recipes get a picture the same way.
+
 ## Your own recipes
 Recipes → **+ My recipe**: name it, set the serves, search the food list for each
 ingredient and type the grams; the per-serve calories and macros are calculated the same

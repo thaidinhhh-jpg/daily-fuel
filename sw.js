@@ -1,10 +1,11 @@
 // Offline cache for Daily Fuel. Bump VERSION when shipping changes.
-const VERSION = "daily-fuel-v12";
-const SHELL = ["./", "index.html", "foods.js", "fastfood.js", "recipes.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
+const VERSION = "daily-fuel-v13";
+const SHELL = ["./", "index.html", "foods.js", "fastfood.js", "recipes.js", "recipe-images.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
+const IMAGES = ["img/burger.webp", "img/burrito.webp", "img/cake.webp", "img/casserole.webp", "img/coffee.webp", "img/cookies.webp", "img/creamy-pasta.webp", "img/curry.webp", "img/dessert.webp", "img/drink.webp", "img/dumplings.webp", "img/eggs-toast.webp", "img/fish-chips.webp", "img/fish.webp", "img/fried-rice.webp", "img/fruit.webp", "img/grain-bowl.webp", "img/green-curry.webp", "img/kebabs.webp", "img/lasagne.webp", "img/meatballs.webp", "img/muffin.webp", "img/nachos.webp", "img/noodle-soup.webp", "img/noodles.webp", "img/pancakes.webp", "img/pasta.webp", "img/pie.webp", "img/pizza.webp", "img/porridge.webp", "img/prawns.webp", "img/risotto.webp", "img/roast-dinner.webp", "img/salad.webp", "img/sandwich.webp", "img/sausages.webp", "img/schnitzel.webp", "img/smoothie.webp", "img/snack-balls.webp", "img/soup.webp", "img/steak.webp", "img/stir-fry.webp", "img/tacos.webp", "img/toastie.webp", "img/tofu.webp", "img/veggie-bake.webp", "img/wrap.webp", "img/yoghurt-bowl.webp"];
 const ZXING = "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js";
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.concat(IMAGES))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {

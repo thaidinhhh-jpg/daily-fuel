@@ -192,6 +192,11 @@ h2 .btns{display:inline-flex}
 .rcard .rtools{display:flex;gap:10px;margin-top:6px}
 .rcard .rtools .link{font-size:12px}
 .rcard.mine{border-style:dashed}
+.rcard{display:flex;gap:10px;align-items:flex-start}
+.rcard .rbody{min-width:0;flex:1}
+.rimg{width:64px;height:64px;border-radius:10px;object-fit:cover;flex:none;background:#f6f1e7}
+.rthumb{width:26px;height:26px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:8px;background:#f6f1e7}
+.rhero{float:right;width:96px;height:96px;border-radius:12px;object-fit:cover;margin:0 0 8px 10px;background:#f6f1e7}
 .streak{font-size:13px;font-weight:600;color:var(--steps);background:var(--steps-soft);padding:3px 10px;border-radius:99px}
 .week{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 @media (max-width:760px){.week{grid-template-columns:repeat(2,1fr)}}
@@ -559,6 +564,7 @@ h2 .btns{display:inline-flex}
 <script src="foods.js"></script>
 <script src="fastfood.js"></script>
 <script src="recipes.js"></script>
+<script src="recipe-images.js"></script>
 <script>
 (function(){
 "use strict";
@@ -991,14 +997,17 @@ function bigFoods(){
     // recipes (recipes.js); nutrition per serve, calculated from the USDA values of the ingredients
     const RC=window.RECIPES;
     if(RC) RC.rows.forEach((r,ri)=>{ const lc=r[0].toLowerCase(), rcat=RC.cats[r[1]];
-      BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], ri, src:"recipe", lc, head:lc}); });
+      BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], ri, src:"recipe", lc, head:lc, img:recipeImg(r[0],rcat)}); });
     // the user's own recipes (per-serve values calculated from their ingredients)
     state.myRecipes.forEach(r=>{ const n=myRecipeNutrition(r), lc=r.title.toLowerCase();
       BIG.push({name:r.title, title:r.title, cat:`My recipe · serves ${r.serves}`, rcat:"My recipes", serves:r.serves, ingList:r.ings.map(i=>[i.name,i.g]),
-        method:r.method||"", kcal:n.kcal, p:n.p, c:n.c, f:n.f, ri:"m"+r.id, src:"recipe", mine:true, lc, head:lc}); });
+        method:r.method||"", kcal:n.kcal, p:n.p, c:n.c, f:n.f, ri:"m"+r.id, src:"recipe", mine:true, lc, head:lc, img:recipeImg(r.title,"My recipes")}); });
   }
   return BIG;
 }
+// dish illustration for a recipe (img/*.webp, chosen from the title); "" when the image set isn't loaded
+function recipeImg(title, cat){ return window.RECIPE_IMG ? window.RECIPE_IMG.src(window.RECIPE_IMG.pick(title, cat)) : ""; }
+const thumb = (f, cls) => f.img ? `<img class="${cls}" src="${f.img}" alt="" loading="lazy">` : "";
 function findRecipe(ri){ return bigFoods().find(x=>x.src==="recipe" && String(x.ri)===String(ri)); }
 function ingList(f){ return f.ingList || f.ings.map(([i,g])=>[window.RECIPES.ing[i][0], g]); }
 function invalidateFoods(){ BIG=null; RMAP=null; }
@@ -1060,7 +1069,7 @@ function recipeBases(f){
 function showRecipe(f){
   const RC=window.RECIPES, box=$("#recipeInfo");
   if(!f){ box.classList.add("hidden"); box.innerHTML=""; return; }
-  box.innerHTML = `<b>${esc(f.title)}</b> <span class="muted">· ${esc(f.rcat)} · serves ${f.serves}</span>
+  box.innerHTML = `${thumb(f,"rhero")}<b>${esc(f.title)}</b> <span class="muted">· ${esc(f.rcat)} · serves ${f.serves}</span>
     <ul>${ingList(f).map(([n,g])=>`<li>${fmt(g)} g ${esc(n)}</li>`).join("")}</ul>
     ${f.method.includes(" | ") ? `<ol class="steps">${f.method.split(" | ").map(s=>`<li>${esc(s)}</li>`).join("")}</ol>` : `<p>${esc(f.method)}</p>`}
     <p class="muted">Per serve: ${fmt(f.kcal)} kcal · P ${r1(f.p)} g · C ${r1(f.c)} g · F ${r1(f.f)} g — calculated from USDA ingredient values (raw weights).</p>
@@ -1106,7 +1115,7 @@ function renderPlanResults(){
     list=bigFoods().filter(f=>f.src==="recipe" && alts.every(a=>a.some(x=>f.lc.includes(x)||f.rcat.toLowerCase().includes(x))));
     list=(q?list.map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]):list).slice(0,40);
   }
-  $("#planResults").innerHTML = list.length ? list.map(f=>`<div class="res" data-planpick="${f.ri}"><span>${esc(f.title)}<span class="tag">${esc(f.rcat)} · serves ${f.serves}</span></span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal</span></div>`).join("")
+  $("#planResults").innerHTML = list.length ? list.map(f=>`<div class="res" data-planpick="${f.ri}"><span>${thumb(f,"rthumb")}${esc(f.title)}<span class="tag">${esc(f.rcat)} · serves ${f.serves}</span></span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal</span></div>`).join("")
     : `<div class="empty" style="padding:10px">No recipes match.</div>`;
 }
 function planAdd(ri){
@@ -1156,9 +1165,9 @@ function renderRecipes(){
   let list=bigFoods().filter(f=>f.src==="recipe" && (!rcat||f.rcat===rcat) && alts.every(a=>a.some(x=>f.lc.includes(x)||f.rcat.toLowerCase().includes(x))));
   if(q) list=list.map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
   const shown=list.slice(0,150);
-  $("#recipeList").innerHTML = shown.length ? shown.map(f=>`<div class="rcard ${f.mine?"mine":""}" data-recipe="${f.ri}"><div class="rt">${esc(f.title)}</div>
+  $("#recipeList").innerHTML = shown.length ? shown.map(f=>`<div class="rcard ${f.mine?"mine":""}" data-recipe="${f.ri}">${thumb(f,"rimg")}<div class="rbody"><div class="rt">${esc(f.title)}</div>
       <div class="rm">${esc(f.rcat)} · serves ${f.serves}</div><div class="rn"><b>${fmt(f.kcal)}</b> kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</div>
-      ${f.mine?`<div class="rtools"><button class="link" data-editrecipe="${esc(f.ri.slice(1))}">Edit</button><button class="link" data-delrecipe="${esc(f.ri.slice(1))}" style="color:var(--burn)">Delete</button></div>`:""}</div>`).join("")
+      ${f.mine?`<div class="rtools"><button class="link" data-editrecipe="${esc(f.ri.slice(1))}">Edit</button><button class="link" data-delrecipe="${esc(f.ri.slice(1))}" style="color:var(--burn)">Delete</button></div>`:""}</div></div>`).join("")
       + (list.length>shown.length ? `<div class="empty">Showing 150 of ${list.length.toLocaleString()} — type more to narrow it down.</div>` : "")
     : `<div class="empty">No recipes match.</div>`;
 }
@@ -1252,7 +1261,7 @@ function searchFoods(){
     f.src==="usda"||f.src==="ff"||f.src==="recipe"?`<span class="tag">${esc(f.cat)}</span>`:"";
   const onlineRow = q.length>=3 && onlineQ!==q ? `<div class="res online" data-online="1">Search online for “${esc(q)}”…</div>` : "";
   $("#foodResults").innerHTML = (results.length ? results.map((f,i)=>`<div class="res" data-res="${i}">
-      <span>${esc(f.name)}${tag(f)}</span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal${f.src==="usda"||f.unit==="g"?"/100 g":""}</span></div>`).join("")
+      <span>${f.src==="recipe"?thumb(f,"rthumb"):""}${esc(f.name)}${tag(f)}</span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal${f.src==="usda"||f.unit==="g"?"/100 g":""}</span></div>`).join("")
     : `<div class="empty" style="padding:10px">${q?(onlineQ===q?"Nothing found online either — enter the details below.":"No match in your foods."):"Type to search, scan a barcode, or enter a food manually below."}</div>`) + onlineRow;
 }
 async function searchOnline(){
