@@ -56,6 +56,18 @@ nutrition (websites and nutrition PDFs), collected October 2026:
 
 Add a country to a search to filter by it, e.g. "whopper uk" or "big mac usa".
 
+## Recipes
+`recipes.js` holds 2,000 recipes across 25 categories (breakfast, lunch, salads, soups,
+Aussie classics, pasta, Asian, Mexican/Indian/Middle Eastern, vegetarian & vegan, meal
+prep & high protein, snacks, smoothies, desserts & baking, sides, kids, seafood, slow
+cooker & one-pot, light dinners, low carb & keto, BBQ & burgers, quick dinners, chicken,
+beef/lamb/pork, air fryer & oven bakes, toasties). Each recipe lists its ingredients in
+grams, a short method and the number of serves; the nutrition per serve is calculated
+from the USDA values of those ingredients (raw weights), so it is an estimate that moves
+if you change quantities. Browse them on the Recipes tab or type "recipe" in the food
+search (e.g. "recipe chicken curry") to see only recipes. Logging a recipe adds one serve
+(or the whole recipe) to the chosen meal.
+
 Values are per serve as the chain publishes them; menus change, so re-check
 the chain's site for anything new. Settings → "Fast food menus to show first"
 puts your region's menus at the top of search results.

@@ -152,6 +152,16 @@ th{font-size:12px;color:var(--muted);font-weight:600}
 .searchrow{display:flex;gap:6px}
 .searchrow input{flex:1;min-width:0}
 .res.online{justify-content:center;color:var(--accent);font-weight:600}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:12px}
+.rcard{border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.rcard:hover{border-color:var(--accent)}
+.rcard .rt{font-weight:600;font-size:14px}
+.rcard .rm{font-size:12px;color:var(--muted);margin:2px 0 6px}
+.rcard .rn{font-size:12px}
+.recipeinfo{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px;max-height:260px;overflow:auto}
+.recipeinfo ul{margin:6px 0;padding-left:18px;columns:2;column-gap:18px}
+.recipeinfo p{margin:6px 0}
+@media(max-width:600px){.recipeinfo ul{columns:1}}
 .streak{font-size:13px;font-weight:600;color:var(--steps);background:var(--steps-soft);padding:3px 10px;border-radius:99px}
 .week{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 @media (max-width:760px){.week{grid-template-columns:repeat(2,1fr)}}
@@ -173,6 +183,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
     <nav class="tabs" id="tabs">
       <button data-tab="today" class="on">Today</button>
       <button data-tab="history">History</button>
+      <button data-tab="recipes">Recipes</button>
       <button data-tab="settings">Settings</button>
     </nav>
   </header>
@@ -285,6 +296,17 @@ th{font-size:12px;color:var(--muted);font-weight:600}
   </section>
 
   <!-- SETTINGS -->
+  <!-- RECIPES -->
+  <section id="tab-recipes" class="hidden">
+    <div class="card">
+      <h2>Recipes <span class="pill" id="recipeCount"></span></h2>
+      <div class="searchrow"><input id="recipeSearch" placeholder="Search recipes (e.g. chicken curry, protein, vegan, slow cooker)…" autocomplete="off"></div>
+      <div class="btns" id="recipeCats" style="margin-top:10px"></div>
+      <div class="rgrid" id="recipeList"></div>
+      <p class="muted" style="font-size:12px;margin:12px 0 0">Nutrition per serve is calculated from the USDA values of each ingredient (raw weights), so it changes if you swap or scale ingredients. Tap a recipe to see the ingredients and log a serve.</p>
+    </div>
+  </section>
+
   <section id="tab-settings" class="hidden">
     <div class="grid">
       <div class="card span6">
@@ -376,6 +398,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
       <button class="btn ghost" id="scanBtn" title="Scan a barcode">&#9783; Scan</button>
     </div>
     <div class="results" id="foodResults"></div>
+    <div class="recipeinfo hidden" id="recipeInfo"></div>
     <div class="btns hidden" id="basis" style="margin-top:8px"></div>
     <div class="fields">
       <div class="w4"><label>Food name</label><input id="fName"></div>
@@ -392,7 +415,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
       <button class="btn ghost" data-close>Cancel</button>
       <button class="btn" id="foodSubmit">Add</button>
     </div>
-    <p class="muted" style="font-size:11px;margin:10px 0 0">Food list: USDA FoodData Central (12,000+ foods). Fast food: each chain's official published nutrition (Australia, UK &amp; Europe, US). Packaged products: Open Food Facts.</p>
+    <p class="muted" style="font-size:11px;margin:10px 0 0">Food list: USDA FoodData Central (12,000+ foods). Fast food: each chain's official published nutrition (Australia, UK &amp; Europe, US). Recipes: 2,000 recipes with nutrition calculated from their USDA ingredients (type "recipe" to see only recipes). Packaged products: Open Food Facts.</p>
   </div>
 </div>
 
@@ -429,6 +452,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
 
 <script src="foods.js"></script>
 <script src="fastfood.js"></script>
+<script src="recipes.js"></script>
 <script>
 (function(){
 "use strict";
@@ -772,7 +796,7 @@ function renderSettings(){
   $("#installBtn").classList.toggle("hidden", !installEvt || standalone);
 }
 
-function render(){ renderToday(); if(!$("#tab-history").classList.contains("hidden")) renderHistory(); if(!$("#tab-settings").classList.contains("hidden")) renderSettings(); }
+function render(){ renderToday(); if(!$("#tab-history").classList.contains("hidden")) renderHistory(); if(!$("#tab-recipes").classList.contains("hidden")) renderRecipes(); if(!$("#tab-settings").classList.contains("hidden")) renderSettings(); }
 function applyTheme(){ if(state.theme) document.documentElement.dataset.theme=state.theme; else delete document.documentElement.dataset.theme; }
 
 // ---------- food modal ----------
@@ -782,7 +806,7 @@ function defaultMeal(){ const h=new Date().getHours(); return h<11?"Breakfast":h
 let pendingCode=null, curBases=[], onlineQ="", onlineRes=[], installEvt=null;
 function openFood(meal){
   setWeightMode(false);
-  picked=null; pendingCode=null; setBasis(null); onlineQ=""; onlineRes=[];
+  picked=null; pendingCode=null; setBasis(null); onlineQ=""; onlineRes=[]; pinRecipe=null; showRecipe(null);
   ["#fName","#fKcal","#fP","#fC","#fF","#foodSearch"].forEach(s=>$(s).value="");
   $("#fQty").value=1; $("#fSave").checked=false;
   $("#fMeal").value = meal || (cur===todayKey()?defaultMeal():"Lunch");
@@ -810,8 +834,46 @@ function bigFoods(){
     const FF=window.FASTFOOD;
     if(FF) FF.rows.forEach(r=>{ const s=FF.sources[r[0]], name=r[1].toLowerCase().startsWith(s[0].toLowerCase())?r[1]:`${s[0]} ${r[1]}`;
       BIG.push({name, cat:`${s[0]} · ${s[2]}${r[4]==null?" · energy only":""}`, kcal:r[3], p:r[4], f:r[5], c:r[6], g:r[2], src:"ff", region:s[1], lc:name.toLowerCase(), head:r[1].toLowerCase()}); });
+    // recipes (recipes.js); nutrition per serve, calculated from the USDA values of the ingredients
+    const RC=window.RECIPES;
+    if(RC) RC.rows.forEach((r,ri)=>{ const lc=r[0].toLowerCase(), rcat=RC.cats[r[1]];
+      BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], ri, src:"recipe", lc, head:lc}); });
   }
   return BIG;
+}
+function recipeBases(f){
+  const out=[{label:"1 serve", kcal:f.kcal, p:f.p, c:f.c, f:f.f}];
+  if(f.serves>1) out.push({label:`Whole recipe (${f.serves} serves)`, kcal:f.kcal*f.serves, p:f.p*f.serves, c:f.c*f.serves, f:f.f*f.serves});
+  return out;
+}
+function showRecipe(f){
+  const RC=window.RECIPES, box=$("#recipeInfo");
+  if(!f){ box.classList.add("hidden"); box.innerHTML=""; return; }
+  box.innerHTML = `<b>${esc(f.title)}</b> <span class="muted">· ${esc(f.rcat)} · serves ${f.serves}</span>
+    <ul>${f.ings.map(([i,g])=>`<li>${fmt(g)} g ${esc(RC.ing[i][0])}</li>`).join("")}</ul>
+    <p>${esc(f.method)}</p>
+    <p class="muted">Per serve: ${fmt(f.kcal)} kcal · P ${r1(f.p)} g · C ${r1(f.c)} g · F ${r1(f.f)} g — calculated from USDA ingredient values (raw weights).</p>`;
+  box.classList.remove("hidden");
+}
+// Recipes tab
+let rcat="", pinRecipe=null;
+function renderRecipes(){
+  const RC=window.RECIPES; if(!RC) return;
+  $("#recipeCount").textContent = RC.rows.length.toLocaleString()+" recipes";
+  $("#recipeCats").innerHTML = [`<button class="chip ${rcat===""?"on":""}" data-rcat="">All</button>`]
+    .concat(RC.cats.map(c=>`<button class="chip ${rcat===c?"on":""}" data-rcat="${esc(c)}">${esc(c)}</button>`)).join("");
+  const q=$("#recipeSearch").value.trim().toLowerCase(), alts=q.split(/\s+/).filter(Boolean).map(w=>SYN[w]||[w]);
+  let list=bigFoods().filter(f=>f.src==="recipe" && (!rcat||f.rcat===rcat) && alts.every(a=>a.some(x=>f.lc.includes(x)||f.rcat.toLowerCase().includes(x))));
+  if(q) list=list.map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  const shown=list.slice(0,150);
+  $("#recipeList").innerHTML = shown.length ? shown.map(f=>`<div class="rcard" data-recipe="${f.ri}"><div class="rt">${esc(f.title)}</div>
+      <div class="rm">${esc(f.rcat)} · serves ${f.serves}</div><div class="rn"><b>${fmt(f.kcal)}</b> kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</div></div>`).join("")
+      + (list.length>shown.length ? `<div class="empty">Showing 150 of ${list.length.toLocaleString()} — type more to narrow it down.</div>` : "")
+    : `<div class="empty">No recipes match.</div>`;
+}
+function openRecipe(ri){
+  const f=bigFoods().find(x=>x.src==="recipe"&&x.ri===ri); if(!f) return;
+  openFood(); pinRecipe=f; $("#foodSearch").value=f.title; searchFoods(); pick(0);
 }
 function ffBases(f){
   const out=[{label:`1 serve${f.g?` (${fmt(f.g)} g)`:""}`, kcal:f.kcal, p:f.p, c:f.c, f:f.f}];
@@ -884,16 +946,19 @@ function searchFoods(){
     const COUNTRY={au:"australia",aus:"australia",australia:"australia",uk:"uk",britain:"uk",ireland:"ireland",ie:"ireland",
       germany:"germany",de:"germany",europe:"europe",eu:"europe",us:"usa",usa:"usa",america:"usa"};
     const all=q.split(/\s+/).filter(Boolean), countries=all.filter(w=>COUNTRY[w]).map(w=>COUNTRY[w]);
-    const words=all.filter(w=>!COUNTRY[w]), alts=(words.length?words:all).map(w=>SYN[w]||[w]);
+    // "recipe" / "recipes" in the query shows recipes only
+    const onlyRecipes=all.some(w=>w==="recipe"||w==="recipes");
+    const words=all.filter(w=>!COUNTRY[w]&&w!=="recipe"&&w!=="recipes"), alts=(words.length||onlyRecipes?words:all).map(w=>SYN[w]||[w]);
     const inCountry=f=>!countries.length||!words.length||(f.src==="ff"&&countries.some(c=>f.cat.toLowerCase().includes(c)));
-    const match=f=>{ const n=f.lc||f.name.toLowerCase(); return inCountry(f) && alts.every(a=>a.some(x=>n.includes(x))); };
+    const match=f=>{ const n=f.lc||f.name.toLowerCase(); return (!onlyRecipes||f.src==="recipe") && inCountry(f) && alts.every(a=>a.some(x=>n.includes(x))); };
     const big=bigFoods().filter(match).map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).slice(0,50).map(x=>x[0]);
     results=[...combos.filter(match), ...dedupe([...mine.filter(match), ...recentFoods().filter(match), ...FOOD_DB.filter(match)]).slice(0,15), ...big];
     if(onlineQ===q) results=results.concat(onlineRes);
   }
+  if(pinRecipe) results=[pinRecipe, ...results.filter(f=>f!==pinRecipe)];
   const tag = f => f.src==="mine"?'<span class="tag">★ mine</span>':f.src==="recent"?'<span class="tag">recent</span>':
     f.src==="combo"?`<span class="tag">★ meal · ${f.n} item${f.n===1?"":"s"}</span>`:f.src==="online"?'<span class="tag">online</span>':
-    f.src==="usda"?`<span class="tag">${esc(f.cat)}</span>`:f.src==="ff"?`<span class="tag">${esc(f.cat)}</span>`:"";
+    f.src==="usda"||f.src==="ff"||f.src==="recipe"?`<span class="tag">${esc(f.cat)}</span>`:"";
   const onlineRow = q.length>=3 && onlineQ!==q ? `<div class="res online" data-online="1">Search online for “${esc(q)}”…</div>` : "";
   $("#foodResults").innerHTML = (results.length ? results.map((f,i)=>`<div class="res" data-res="${i}">
       <span>${esc(f.name)}${tag(f)}</span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal${f.src==="usda"||f.unit==="g"?"/100 g":""}</span></div>`).join("")
@@ -951,6 +1016,8 @@ function pick(i){
   const f=results[i]; if(!f) return;
   if(f.src==="combo"){ logCombo(f.ci); return; }
   $$(".res").forEach((r,j)=>r.classList.toggle("sel",j===i));
+  showRecipe(f.src==="recipe"?f:null);
+  if(f.src==="recipe"){ picked=f; pendingCode=null; $("#fName").value=f.name; setBasis(recipeBases(f)); chooseBasis(0); return; }
   if(f.src==="usda"){ picked=f; pendingCode=null; $("#fName").value=f.name; setBasis(usdaBases(f)); chooseBasis(0); return; }
   if(f.src==="ff"){ picked=f; pendingCode=null; $("#fName").value=f.name; setBasis(ffBases(f)); chooseBasis(0); return; }
   if(f.bases){ applyProduct(f, f.code); return; }
@@ -1068,7 +1135,7 @@ function closeModal(m){ if(m.id==="scanModal") stopScan(); m.classList.remove("o
 
 // ---------- events ----------
 document.addEventListener("click", e=>{
-  const t=e.target.closest("button,[data-res],[data-online]"); if(!t){ if(e.target.classList.contains("modal")) closeModal(e.target); return; }
+  const t=e.target.closest("button,[data-res],[data-online],[data-recipe]"); if(!t){ if(e.target.classList.contains("modal")) closeModal(e.target); return; }
   const ds=t.dataset;
   if(ds.online){ searchOnline(); return; }
   if(ds.basis!==undefined){ chooseBasis(+ds.basis); return; }
@@ -1077,9 +1144,11 @@ document.addEventListener("click", e=>{
   if(ds.delcombo){ state.combos.splice(+ds.delcombo,1); save(); renderSettings(); return; }
   if(ds.tab){
     $$("#tabs button").forEach(b=>b.classList.toggle("on",b===t));
-    ["today","history","settings"].forEach(n=>$("#tab-"+n).classList.toggle("hidden",n!==ds.tab));
+    ["today","history","recipes","settings"].forEach(n=>$("#tab-"+n).classList.toggle("hidden",n!==ds.tab));
     render(); return;
   }
+  if(ds.recipe!==undefined){ openRecipe(+ds.recipe); return; }
+  if(ds.rcat!==undefined){ rcat=ds.rcat; renderRecipes(); return; }
   if(ds.close!==undefined){ closeModal(t.closest(".modal")); return; }
   if(ds.res!==undefined){ pick(+ds.res); return; }
   if(ds.addmeal){ openFood(ds.addmeal); return; }
@@ -1097,7 +1166,8 @@ $("#nextDay").onclick=()=>{ if(cur<todayKey()){ cur=shift(cur,1); render(); } };
 $("#goToday").onclick=()=>{ cur=todayKey(); render(); };
 $("#addFoodBtn").onclick=()=>openFood();
 $("#addExBtn").onclick=openEx;
-$("#foodSearch").oninput=searchFoods;
+$("#foodSearch").oninput=()=>{ pinRecipe=null; searchFoods(); };
+$("#recipeSearch").oninput=renderRecipes;
 $("#foodSearch").onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); if(results.length) pick(0); else if($("[data-online]")) searchOnline(); } };
 $("#scanBtn").onclick=openScan;
 $("#barcodeGo").onclick=()=>lookupBarcode($("#barcodeIn").value);
