@@ -132,6 +132,17 @@ ingredients of every planned recipe for the week (or one day), scaled to the ser
 planned; tick items off as you shop (ticks are remembered per week), copy the list or
 share it to another app.
 
+## Native apps, Health sync and the Shortcuts hook
+The `daily-fuel-native` folder next to this one wraps the app for **Android and iOS** with
+Capacitor and adds Apple Health / Health Connect sync (steps, weight, active energy) —
+see its README for building and installing. Inside those apps, Settings shows a **Health
+sync** card (Connect / Sync now / Turn off); the web version hides it.
+
+The web app also accepts `?steps=N`, `?weight=KG`, `?water=ML` and an optional
+`&date=YYYY-MM-DD` in the address, logs them and cleans the URL — for iPhone Shortcuts,
+Tasker or any automation (details in the native README). `privacy.html` is the privacy
+policy Health Connect requires.
+
 ## Backups
 Everything is stored in the browser, so Settings → Backup has **Export backup** (a JSON
 file), **Share backup…** on phones (send the file to yourself), **Import backup** with a

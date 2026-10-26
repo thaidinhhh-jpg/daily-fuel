@@ -494,6 +494,11 @@ h2 .btns{display:inline-flex}
         </div>
         <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
         <h2>Install on your phone</h2>
+        <div id="healthCard" class="hidden" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line)">
+          <h2>Health sync <span class="pill" id="healthState"></span></h2>
+          <p class="muted" style="margin-top:0;font-size:14px" id="healthNote">Read steps and weight from Apple Health / Health Connect automatically, and write the weights you log here back to it.</p>
+          <div class="btns"><button class="btn" id="healthConnectBtn">Connect</button><button class="btn ghost hidden" id="healthSyncBtn">Sync now</button><button class="btn ghost hidden" id="healthOffBtn">Turn off</button></div>
+        </div>
         <p class="muted" style="margin-top:0;font-size:14px" id="installNote"></p>
         <button class="btn hidden" id="installBtn" style="margin-bottom:14px">Install app</button>
         <div class="f" style="margin-bottom:14px"><label>Fast food menus to show first</label>
@@ -715,7 +720,7 @@ let state = load();
 let cur = todayKey();
 function fresh(s){ s=s||{}; return {settings:{...DEFAULTS,...s.settings},days:s.days||{},myFoods:s.myFoods||[],weights:s.weights||{},
   combos:s.combos||[],barcodes:s.barcodes||{},theme:s.theme||"",plan:s.plan||{},shop:s.shop||{},backupAt:s.backupAt||0,myRecipes:s.myRecipes||[],
-  fast:s.fast||null,fasts:s.fasts||[],fastHours:s.fastHours==null?16:s.fastHours,measures:s.measures||{}}; }
+  fast:s.fast||null,fasts:s.fasts||[],fastHours:s.fastHours==null?16:s.fastHours,measures:s.measures||{},health:s.health||null}; }
 // merge a backup into the current data: keep both sets of days (entries de-duplicated by id), weights, foods and meals
 function mergeState(cur, inc){
   const out=fresh(cur);
@@ -1159,6 +1164,10 @@ function renderSettings(){
   $("#backupInfo").innerHTML = state.backupAt ? `Last backup: <b>${new Date(state.backupAt).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}</b>` : `<b>No backup yet.</b>`;
   $("#shareBtn").classList.toggle("hidden", !(navigator.canShare && window.File));
   $("#undoImport").classList.toggle("hidden", !localStorage.getItem(KEY+".prev"));
+  $("#healthCard").classList.toggle("hidden", !NATIVE);
+  if(NATIVE){ const h=state.health; $("#healthState").textContent = h&&h.on ? (h.err?"error":"on") : "off";
+    $("#healthConnectBtn").classList.toggle("hidden", !!(h&&h.on)); $("#healthSyncBtn").classList.toggle("hidden", !(h&&h.on)); $("#healthOffBtn").classList.toggle("hidden", !(h&&h.on));
+    $("#healthNote").textContent = h&&h.on ? (h.err ? "Last sync failed: "+h.err : `Steps and weight are read from ${/iP/.test(navigator.userAgent)?"Apple Health":"Health Connect"}; last sync ${h.at?new Date(h.at).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}):"pending"}. Syncs when the app opens, at most every 10 minutes.`) : "Read steps and weight from Apple Health / Health Connect automatically, and write the weights you log here back to it."; }
   const b = body();
   $("#bodyStats").innerHTML = [
     [b.bmi?b.bmi.toFixed(1):"—","BMI · "+(b.cat||"add height")],
@@ -1854,7 +1863,9 @@ $("#histMetric").onchange=renderHistory;
 $$("[data-set]").forEach(el=>el.onchange=()=>{ const v=+el.value||0; state.settings[el.dataset.set]=el.dataset.neg?v:Math.max(0,v); save(); render(); toast("Saved"); });
 $("#applySuggest").onclick=()=>{ state.settings.calGoal=body().suggest; save(); render(); toast("Calorie goal updated"); };
 $("#applyAdaptive").onclick=()=>{ const a=adaptiveGoal(); if(!a.ok) return; state.settings.calGoal=a.suggest; save(); render(); toast("Calorie goal set from your results"); };
+$("#healthConnectBtn").onclick=healthConnect; $("#healthSyncBtn").onclick=()=>healthSync(true); $("#healthOffBtn").onclick=healthDisconnect;
 $("#weightSave").onclick=()=>{ const v=num($("#weightIn").value); if(!v||v>500){ toast("Enter your weight in kg"); return; }
+  if(HF && state.health && state.health.on && cur===todayKey()) HF.writeData({variable:"WEIGHT", value:v}).catch(()=>{});
   state.weights[cur]=Math.round(v*10)/10; $("#weightIn").value=""; save(); render(); toast(`Logged ${state.weights[cur]} kg`); };
 $("#weightIn").onkeydown=e=>{ if(e.key==="Enter") $("#weightSave").click(); };
 $("#theme").onchange=()=>{ state.theme=$("#theme").value; applyTheme(); save(); };
@@ -1917,6 +1928,57 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigat
 addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); installEvt=e; renderSettings(); });
 $("#installBtn").onclick=async()=>{ if(!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt=null; renderSettings(); };
 
+// ---------- Health sync: Apple Health / Android Health Connect, native app only ----------
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const HF = NATIVE ? ((window.Capacitor.Plugins||{}).HealthFitness || null) : null;
+const isoNoMs = d => d.toISOString().split(".")[0] + "Z";
+const hv = (o, ...ks) => { for(const k of ks){ if(o && o[k]!=null) return o[k]; } return null; };
+async function healthConnect(){
+  if(!HF){ toast("Health sync needs the Daily Fuel app (not the web version)"); return false; }
+  const off = JSON.stringify({IsActive:false, AccessType:"READ"});
+  const wanted = [{Variable:"STEPS",AccessType:"READ"},{Variable:"WEIGHT",AccessType:"READWRITE"},{Variable:"CALORIES_BURNED",AccessType:"READ"}];
+  try{
+    try{ await HF.requestHealthPermissions({customPermissions:JSON.stringify(wanted), allVariables:off, fitnessVariables:off, healthVariables:off, profileVariables:off, workoutVariables:off}); }
+    catch(e){ // older plugin builds only accept the group form
+      await HF.requestHealthPermissions({customPermissions:"[]", allVariables:off, fitnessVariables:JSON.stringify({IsActive:true,AccessType:"READ"}), healthVariables:off, profileVariables:JSON.stringify({IsActive:true,AccessType:"READWRITE"}), workoutVariables:off}); }
+    state.health={on:true, at:0}; save(); renderSettings(); await healthSync(true); return true;
+  }catch(e){ toast("Health access wasn't granted: "+(e.message||e)); return false; }
+}
+async function healthSync(manual){
+  if(!HF || !(state.health&&state.health.on)) return;
+  if(!manual && state.health.at && Date.now()-state.health.at < 10*60e3) return;   // auto-sync at most every 10 minutes
+  let n=0;
+  try{
+    const start=new Date(Date.now()-7*864e5); start.setHours(0,0,0,0); const end=new Date(Date.now()+864e5);
+    const r=await HF.getData({parameters:JSON.stringify({Variable:"STEPS", StartDate:isoNoMs(start), EndDate:isoNoMs(end), TimeUnit:"DAY", OperationType:"SUM", TimeUnitLength:1, AdvancedQueryReturnType:"ALL_DATA", AdvancedQueryResultType:"RAW_DATA"})});
+    const rows=typeof r.results==="string" ? JSON.parse(r.results||"[]") : (r.results||r.data||[]);
+    (Array.isArray(rows)?rows:[]).forEach(x=>{
+      const raw=hv(x,"value","Value","values","Values","sum","Sum"); const v=+(Array.isArray(raw)?raw[0]:raw)||0;
+      const ds=hv(x,"startDate","StartDate","date","Date","start","Start"); if(!ds||!v) return;
+      const k=todayKey(new Date(ds)); if((peek(k).steps||0)<v){ day(k).steps=Math.round(v); n++; }
+    });
+    try{
+      const w=await HF.getLastRecord({variable:"WEIGHT"}); const wv=+hv(w,"value","Value")||0, wd=hv(w,"date","Date","startDate","StartDate","endDate","EndDate");
+      if(wv>20 && wv<400 && wd){ const k=todayKey(new Date(wd)); if(!state.weights[k] && k>=shift(todayKey(),-30)){ state.weights[k]=Math.round(wv*10)/10; n++; } }
+    }catch(e){}
+    state.health.at=Date.now(); state.health.err=""; save(); render();
+    if(manual) toast(n?`Health sync: ${n} update${n===1?"":"s"}`:"Health sync: up to date");
+  }catch(e){ state.health.err=String(e.message||e); save(); renderSettings(); if(manual) toast("Health sync failed — see Settings"); }
+}
+function healthDisconnect(){ state.health=null; save(); renderSettings(); if(HF && HF.disconnectFromHealthConnect) HF.disconnectFromHealthConnect().catch(()=>{}); toast("Health sync turned off"); }
+if(NATIVE){ healthSync(false); document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") healthSync(false); }); }
+
+// ---------- URL hook for automations (iPhone Shortcuts, Tasker, etc.) ----------
+// ?steps=8421  ?weight=81.4  ?water=500  optional &date=YYYY-MM-DD (default today); the address is cleaned afterwards
+(function(){
+  const q=new URLSearchParams(location.search); if(!q.has("steps")&&!q.has("weight")&&!q.has("water")) return;
+  const k=/^\d{4}-\d{2}-\d{2}$/.test(q.get("date")||"")?q.get("date"):todayKey(), msgs=[];
+  const st=num(q.get("steps")); if(st){ day(k).steps=Math.max(day(k).steps||0, Math.round(st)); msgs.push(`steps ${fmt(st)}`); }
+  const wt=num(q.get("weight")); if(wt && wt>20 && wt<400){ state.weights[k]=Math.round(wt*10)/10; msgs.push(`weight ${wt} kg`); }
+  const wa=num(q.get("water")); if(wa){ day(k).water.push({id:uid(),ml:Math.round(wa),t:Date.now()}); msgs.push(`water ${fmt(wa)} ml`); }
+  save(); history.replaceState(null,"",location.pathname);
+  setTimeout(()=>toast(`Logged from automation: ${msgs.join(", ")}${k!==todayKey()?" ("+k+")":""}`), 300);
+})();
 applyTheme(); render();
 })();
 </script>
