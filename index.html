@@ -357,6 +357,8 @@ th{font-size:12px;color:var(--muted);font-weight:600}
         <h2>Install on your phone</h2>
         <p class="muted" style="margin-top:0;font-size:14px" id="installNote"></p>
         <button class="btn hidden" id="installBtn" style="margin-bottom:14px">Install app</button>
+        <div class="f" style="margin-bottom:14px"><label>Fast food menus to show first</label>
+          <select id="ffRegion"><option value="">All regions equally</option><option value="AU">Australia</option><option value="EU">UK &amp; Europe</option><option value="US">United States</option></select></div>
         <div class="f" style="margin-bottom:14px"><label>Theme</label>
           <select id="theme"><option value="">Match system</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
         <button class="btn danger" id="resetBtn">Erase all data</button>
@@ -390,7 +392,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
       <button class="btn ghost" data-close>Cancel</button>
       <button class="btn" id="foodSubmit">Add</button>
     </div>
-    <p class="muted" style="font-size:11px;margin:10px 0 0">Food list: USDA FoodData Central (12,000+ foods). Packaged products: Open Food Facts.</p>
+    <p class="muted" style="font-size:11px;margin:10px 0 0">Food list: USDA FoodData Central (12,000+ foods). Fast food: each chain's official published nutrition (Australia, UK &amp; Europe, US). Packaged products: Open Food Facts.</p>
   </div>
 </div>
 
@@ -426,6 +428,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
 <div class="toast" id="toast"></div>
 
 <script src="foods.js"></script>
+<script src="fastfood.js"></script>
 <script>
 (function(){
 "use strict";
@@ -462,7 +465,7 @@ const EXERCISES = [
 ];
 
 const DEFAULTS = {calGoal:2000,waterGoal:2500,stepGoal:10000,weightKg:70,countSteps:1,
-  sex:1,age:30,heightCm:170,goalWeight:0,activity:1.375,rate:0,macroP:30,macroC:40,macroF:30};
+  sex:1,age:30,heightCm:170,goalWeight:0,activity:1.375,rate:0,macroP:30,macroC:40,macroF:30,ffRegion:""};
 const MACRO_PRESETS = [["Balanced",30,40,30],["High protein",40,35,25],["Low carb",35,20,45],["Keto",25,5,70],["Endurance",20,55,25]];
 
 // ---------- state ----------
@@ -733,6 +736,7 @@ function renderSettings(){
   const s = state.settings;
   $$("[data-set]").forEach(el=>{ if(document.activeElement!==el) el.value = s[el.dataset.set]; });
   $("#theme").value = state.theme||"";
+  $("#ffRegion").value = s.ffRegion||"";
   const b = body();
   $("#bodyStats").innerHTML = [
     [b.bmi?b.bmi.toFixed(1):"—","BMI · "+(b.cat||"add height")],
@@ -798,17 +802,28 @@ const dedupe = arr => arr.filter((f,i,a)=>a.findIndex(g=>g.name.toLowerCase()===
 // the big USDA list (foods.js), built on first search; values are per 100 g
 let BIG=null;
 function bigFoods(){
-  if(!BIG) BIG=(window.FOODS||[]).map(r=>{ const lc=r[0].toLowerCase();
+  if(!BIG){ BIG=(window.FOODS||[]).map(r=>{ const lc=r[0].toLowerCase();
     // "head" drops USDA group prefixes so "Fish, salmon, ..." ranks as a salmon
     return {name:r[0],cat:(window.FOOD_CATS||[])[r[1]]||"",kcal:r[2],p:+r[3],c:+r[4],f:+r[5],por:r[6],src:"usda",lc,
       head:lc.replace(/^(fish|beverages|alcoholic beverage|candies|snacks|spices|nuts|seeds|cereals ready-to-eat|game meat|crustaceans|mollusks|fast foods|restaurant, [a-z]+), /,"")}; });
+    // chains' official menus (fastfood.js); values are per serve, g = serving weight when published
+    const FF=window.FASTFOOD;
+    if(FF) FF.rows.forEach(r=>{ const s=FF.sources[r[0]], name=r[1].toLowerCase().startsWith(s[0].toLowerCase())?r[1]:`${s[0]} ${r[1]}`;
+      BIG.push({name, cat:`${s[0]} · ${s[2]}`, kcal:r[3], p:r[4], f:r[5], c:r[6], g:r[2], src:"ff", region:s[1], lc:name.toLowerCase(), head:r[1].toLowerCase()}); });
+  }
   return BIG;
+}
+function ffBases(f){
+  const out=[{label:`1 serve${f.g?` (${fmt(f.g)} g)`:""}`, kcal:f.kcal, p:f.p, c:f.c, f:f.f}];
+  if(f.g){ const k=100/f.g; const per={kcal:f.kcal*k, p:f.p*k, c:f.c*k, f:f.f*k};
+    out.push({label:"100 g", ...per}, {label:"By weight (grams)", unit:"g", ...per}); }
+  return out;
 }
 // Aussie/UK words and common alternatives -> the words the USDA list uses
 const SYN={dry:["dry","raw","uncooked"],uncooked:["raw","uncooked","dry"],raw:["raw","uncooked"],mince:["beef, ground","ground beef","ground turkey","ground pork","ground chicken","pork, ground","lamb, ground","turkey, ground","chicken, ground","mince"],
   prawn:["shrimp","prawn"],prawns:["shrimp","prawn"],capsicum:["peppers, sweet","capsicum"],courgette:["zucchini"],aubergine:["eggplant"],
   coriander:["coriander","cilantro"],rocket:["arugula","rocket"],beetroot:["beet"],crisps:["chips","crisps"],chips:["chips","fries","french fr"],
-  fries:["fries","french fr"],lollies:["candies","candy"],lolly:["candies","candy"],biscuit:["cookie","biscuit","cracker"],biscuits:["cookie","biscuit","cracker"],
+  fries:["fries","french fr","pommes"],milkshake:["milkshake","milchshake","shake"],shake:["shake","milchshake"],lollies:["candies","candy"],lolly:["candies","candy"],biscuit:["cookie","biscuit","cracker"],biscuits:["cookie","biscuit","cracker"],
   yoghurt:["yogurt","yoghurt"],mcdonalds:["mcdonald"],"mcdonald's":["mcdonald"],maccas:["mcdonald"],hungry:["burger king","hungry"],jacks:["burger king","jack"],
   "jack's":["burger king","jack"],rockmelon:["cantaloupe","rockmelon"],silverbeet:["chard"],scallion:["onions, spring","scallion"],
   "spring":["spring","scallion"],porridge:["oat","porridge"],bbq:["bbq","barbecue"],barbeque:["barbecue","bbq"],donut:["doughnut","donut"],
@@ -819,10 +834,21 @@ const SYN={dry:["dry","raw","uncooked"],uncooked:["raw","uncooked","dry"],raw:["
   fillet:["fillet","filet"],schnitzel:["schnitzel","breaded","cutlet"],kumara:["sweet potato"],pumpkin:["pumpkin","squash, winter"],
   flathead:["flatfish","flathead"],barramundi:["sea bass","barramundi"],
   takeaway:[""],nuggets:["nugget"],nugget:["nugget"],burger:["burger","hamburger","cheeseburger","whopper"],
-  wrap:["wrap","burrito","tortilla"],toastie:["grilled cheese","toasted"],grilled:["grilled","broiled"],roast:["roast"],bacon:["bacon"]};
+  wrap:["wrap","burrito","tortilla"],toastie:["grilled cheese","toasted","toastie"],
+  gyg:["guzman"],guzman:["guzman"],dominos:["domino"],"domino's":["domino"],chickfila:["chick-fil-a"],"chick-fil-a":["chick-fil-a"],
+  fiveguys:["five guys"],macca:["mcdonald"],"maccy":["mcdonald"],"maccy-d's":["mcdonald"],hj:["hungry jack","burger king"],hjs:["hungry jack","burger king"],grilled:["grilled","broiled"],roast:["roast"],bacon:["bacon"]};
 function bigScore(f, alts){
   let s=f.head.length;
   const first=alts[0];
+  if(f.src==="ff"){
+    // current official menus beat the older USDA fast food rows; the chosen region comes first
+    s-=15;
+    const pref=state.settings.ffRegion;
+    if(pref) s += f.region===pref ? -60 : 40;
+    if(!first.some(a=>f.head.startsWith(a)||f.lc.startsWith(a))) s+=60;
+    return s;
+  }
+  if(f.cat==="Fast food" && state.settings.ffRegion && state.settings.ffRegion!=="US") s+=40;
   if(!first.some(a=>f.head.startsWith(a))) s+=60;
   // the plain food itself ("Bananas, raw", "Salmon, Atlantic, ...") beats dishes that merely start with it
   else if(first.some(a=>new RegExp("^"+a.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(e?s)?,").test(f.head))) s-=30;
@@ -858,7 +884,7 @@ function searchFoods(){
   }
   const tag = f => f.src==="mine"?'<span class="tag">★ mine</span>':f.src==="recent"?'<span class="tag">recent</span>':
     f.src==="combo"?`<span class="tag">★ meal · ${f.n} item${f.n===1?"":"s"}</span>`:f.src==="online"?'<span class="tag">online</span>':
-    f.src==="usda"?`<span class="tag">${esc(f.cat)}</span>`:"";
+    f.src==="usda"?`<span class="tag">${esc(f.cat)}</span>`:f.src==="ff"?`<span class="tag">${esc(f.cat)}</span>`:"";
   const onlineRow = q.length>=3 && onlineQ!==q ? `<div class="res online" data-online="1">Search online for “${esc(q)}”…</div>` : "";
   $("#foodResults").innerHTML = (results.length ? results.map((f,i)=>`<div class="res" data-res="${i}">
       <span>${esc(f.name)}${tag(f)}</span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal${f.src==="usda"||f.unit==="g"?"/100 g":""}</span></div>`).join("")
@@ -915,6 +941,7 @@ function pick(i){
   if(f.src==="combo"){ logCombo(f.ci); return; }
   $$(".res").forEach((r,j)=>r.classList.toggle("sel",j===i));
   if(f.src==="usda"){ picked=f; pendingCode=null; $("#fName").value=f.name; setBasis(usdaBases(f)); chooseBasis(0); return; }
+  if(f.src==="ff"){ picked=f; pendingCode=null; $("#fName").value=f.name; setBasis(ffBases(f)); chooseBasis(0); return; }
   if(f.bases){ applyProduct(f, f.code); return; }
   picked=f; pendingCode=null; setBasis(null); setWeightMode(f.unit==="g", f.grams); fillFields(f);
 }
@@ -1085,6 +1112,7 @@ $("#weightSave").onclick=()=>{ const v=num($("#weightIn").value); if(!v||v>500){
   state.weights[cur]=Math.round(v*10)/10; $("#weightIn").value=""; save(); render(); toast(`Logged ${state.weights[cur]} kg`); };
 $("#weightIn").onkeydown=e=>{ if(e.key==="Enter") $("#weightSave").click(); };
 $("#theme").onchange=()=>{ state.theme=$("#theme").value; applyTheme(); save(); };
+$("#ffRegion").onchange=()=>{ state.settings.ffRegion=$("#ffRegion").value; save(); toast("Saved"); };
 
 function download(name,text,type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
 $("#exportBtn").onclick=()=>download(`daily-fuel-backup-${todayKey()}.json`, JSON.stringify(state,null,2), "application/json");
