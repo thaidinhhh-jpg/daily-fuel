@@ -809,13 +809,13 @@ function bigFoods(){
     // chains' official menus (fastfood.js); values are per serve, g = serving weight when published
     const FF=window.FASTFOOD;
     if(FF) FF.rows.forEach(r=>{ const s=FF.sources[r[0]], name=r[1].toLowerCase().startsWith(s[0].toLowerCase())?r[1]:`${s[0]} ${r[1]}`;
-      BIG.push({name, cat:`${s[0]} · ${s[2]}`, kcal:r[3], p:r[4], f:r[5], c:r[6], g:r[2], src:"ff", region:s[1], lc:name.toLowerCase(), head:r[1].toLowerCase()}); });
+      BIG.push({name, cat:`${s[0]} · ${s[2]}${r[4]==null?" · energy only":""}`, kcal:r[3], p:r[4], f:r[5], c:r[6], g:r[2], src:"ff", region:s[1], lc:name.toLowerCase(), head:r[1].toLowerCase()}); });
   }
   return BIG;
 }
 function ffBases(f){
   const out=[{label:`1 serve${f.g?` (${fmt(f.g)} g)`:""}`, kcal:f.kcal, p:f.p, c:f.c, f:f.f}];
-  if(f.g){ const k=100/f.g; const per={kcal:f.kcal*k, p:f.p*k, c:f.c*k, f:f.f*k};
+  if(f.g){ const k=100/f.g, m=v=>v==null?null:v*k; const per={kcal:f.kcal*k, p:m(f.p), c:m(f.c), f:m(f.f)};
     out.push({label:"100 g", ...per}, {label:"By weight (grams)", unit:"g", ...per}); }
   return out;
 }
@@ -835,6 +835,8 @@ const SYN={dry:["dry","raw","uncooked"],uncooked:["raw","uncooked","dry"],raw:["
   flathead:["flatfish","flathead"],barramundi:["sea bass","barramundi"],
   takeaway:[""],nuggets:["nugget"],nugget:["nugget"],burger:["burger","hamburger","cheeseburger","whopper"],
   wrap:["wrap","burrito","tortilla"],toastie:["grilled cheese","toasted","toastie"],
+  nandos:["nando"],"nando's":["nando"],wendys:["wendy"],"wendy's":["wendy"],redrooster:["red rooster"],pizzahut:["pizza hut"],
+  tacobell:["taco bell"],bk:["burger king"],kfc:["kfc"],
   gyg:["guzman"],guzman:["guzman"],dominos:["domino"],"domino's":["domino"],chickfila:["chick-fil-a"],"chick-fil-a":["chick-fil-a"],
   fiveguys:["five guys"],macca:["mcdonald"],"maccy":["mcdonald"],"maccy-d's":["mcdonald"],hj:["hungry jack","burger king"],hjs:["hungry jack","burger king"],grilled:["grilled","broiled"],roast:["roast"],bacon:["bacon"]};
 function bigScore(f, alts){
@@ -876,8 +878,13 @@ function searchFoods(){
   const combos = state.combos.map((c,i)=>({name:c.name,src:"combo",ci:i,n:c.items.length,kcal:c.items.reduce((a,f)=>a+f.kcal*f.qty,0)}));
   if(!q){ results = [...combos, ...dedupe([...mine, ...recentFoods()])].slice(0,14); }
   else{
-    const words=q.split(/\s+/).filter(Boolean), alts=words.map(w=>SYN[w]||[w]);
-    const match=f=>{ const n=f.lc||f.name.toLowerCase(); return alts.every(a=>a.some(x=>n.includes(x))); };
+    // country words ("whopper uk", "big mac usa") filter fast food by country instead of matching the name
+    const COUNTRY={au:"australia",aus:"australia",australia:"australia",uk:"uk",britain:"uk",ireland:"ireland",ie:"ireland",
+      germany:"germany",de:"germany",europe:"europe",eu:"europe",us:"usa",usa:"usa",america:"usa"};
+    const all=q.split(/\s+/).filter(Boolean), countries=all.filter(w=>COUNTRY[w]).map(w=>COUNTRY[w]);
+    const words=all.filter(w=>!COUNTRY[w]), alts=(words.length?words:all).map(w=>SYN[w]||[w]);
+    const inCountry=f=>!countries.length||!words.length||(f.src==="ff"&&countries.some(c=>f.cat.toLowerCase().includes(c)));
+    const match=f=>{ const n=f.lc||f.name.toLowerCase(); return inCountry(f) && alts.every(a=>a.some(x=>n.includes(x))); };
     const big=bigFoods().filter(match).map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).slice(0,50).map(x=>x[0]);
     results=[...combos.filter(match), ...dedupe([...mine.filter(match), ...recentFoods().filter(match), ...FOOD_DB.filter(match)]).slice(0,15), ...big];
     if(onlineQ===q) results=results.concat(onlineRes);
@@ -919,8 +926,10 @@ function offToFood(p){
   return {name, bases};
 }
 const r1 = v => v==null||!isFinite(v) ? 0 : Math.round(v*10)/10;
+// macros left blank (not 0) when a chain only publishes energy
+const r1b = v => v==null||!isFinite(v) ? "" : Math.round(v*10)/10;
 function fillFields(f){
-  $("#fName").value=f.name; $("#fKcal").value=Math.round(f.kcal||0); $("#fP").value=r1(f.p); $("#fC").value=r1(f.c); $("#fF").value=r1(f.f);
+  $("#fName").value=f.name; $("#fKcal").value=Math.round(f.kcal||0); $("#fP").value=r1b(f.p); $("#fC").value=r1b(f.c); $("#fF").value=r1b(f.f);
   updTotal(); $("#fQty").focus(); $("#fQty").select();
 }
 function setBasis(bases){

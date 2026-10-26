@@ -35,11 +35,16 @@ with barcode scan or "Search online" (Open Food Facts).
 `fastfood.js` holds about 2,500 menu items, taken from each chain's own published
 nutrition (websites and nutrition PDFs), collected October 2026:
 
-- **Australia:** McDonald's, KFC, Hungry Jack's, Subway, Guzman y Gomez, Domino's
-- **UK & Europe:** McDonald's UK, McDonald's Germany, KFC UK & Ireland, Greggs,
-  Subway UK & Ireland, Five Guys Europe (components; standard burgers are
-  calculated from the official bun/patty/cheese values and labelled as such)
-- **US:** McDonald's, Subway, Chick-fil-A (plus older US chains in the USDA list)
+- **Australia:** McDonald's, KFC, Hungry Jack's, Subway, Guzman y Gomez, Domino's,
+  Pizza Hut, Nando's (18 items with published nutrition), Red Rooster and Oporto
+  (these two publish energy only, so they're tagged "energy only")
+- **UK & Europe:** McDonald's UK, McDonald's Germany, KFC UK & Ireland, Burger King UK,
+  Wendy's UK, Greggs, Subway UK & Ireland, Five Guys Europe (components; standard
+  burgers are calculated from the official bun/patty/cheese values and labelled as such)
+- **US:** McDonald's, Subway, Chick-fil-A, Wendy's, Taco Bell (plus older US chains in
+  the USDA list)
+
+Add a country to a search to filter by it, e.g. "whopper uk" or "big mac usa".
 
 Values are per serve as the chain publishes them; menus change, so re-check
 the chain's site for anything new. Settings → "Fast food menus to show first"
