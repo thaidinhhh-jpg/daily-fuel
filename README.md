@@ -78,7 +78,7 @@ Aussie classics, pasta, Asian, Mexican/Indian/Middle Eastern, vegetarian & vegan
 prep & high protein, snacks, smoothies, desserts & baking, sides, kids, seafood, slow
 cooker & one-pot, light dinners, low carb & keto, BBQ & burgers, quick dinners, chicken,
 beef/lamb/pork, air fryer & oven bakes, toasties). Each recipe lists its ingredients in
-grams, a short method and the number of serves; the nutrition per serve is calculated
+grams, numbered step-by-step cooking instructions (times and temperatures included) and the number of serves; the nutrition per serve is calculated
 from the USDA values of those ingredients (raw weights), so it is an estimate that moves
 if you change quantities. Browse them on the Recipes tab or type "recipe" in the food
 search (e.g. "recipe chicken curry") to see only recipes. Logging a recipe adds one serve
