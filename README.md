@@ -63,6 +63,29 @@ for packaged foods), and the Today tab totals fibre vs your goal, sugar, sodium 
 limit and saturated fat under the macros, noting how many logged items had no values.
 Fast-food items and quick adds don't carry them.
 
+## Food ratings and diet filters
+Every food in search and every recipe shows a coloured dot: **green** good choice, **amber**
+fine in moderation, **red** limit. It's worked out per 100 g from sugar, saturated fat and
+sodium (UK traffic-light thresholds), with credit for fibre and protein and a penalty for
+sugary foods with nothing else in them. Recipes also carry diet tags derived from their
+ingredients — Vegetarian, Vegan, Pescatarian, Dairy-free, Low carb (≤20 g/serve), High
+protein (≥25 g/serve), High fibre, Under 400 kcal — and the Recipes tab has a second row of
+chips to filter by them. **Cook mode** (button under a recipe's steps) shows one step at a
+time in large type and keeps the screen awake.
+
+## Fasting
+Plans 12:12 to 24:0 plus **5:2**: on the 5:2 plan the card has "Make this a fast day", which
+sets that day's calorie goal to 600 kcal (the ring, meals and week balance all use it) and
+counts your two fast days for the week. Timed fasts keep a history, "this week" count and a
+streak of consecutive completed fasts.
+
+## Mood, symptoms and measurements
+Under the day's notes you can tap a mood (😞 😐 🙂 😄) and symptom chips (hungry, bloated,
+tired, slept badly, cravings…); they're saved per day and included in the CSV export.
+History → **Body measurements** logs waist, hips, chest, arm, thigh and body fat %, shows the
+last ten entries and the change since the first. The History chart can show 14, 30 or 90
+days with a dotted average line for logged days.
+
 ## Today tab extras
 - **Quick add** logs calories (and optional macros) without choosing a food.
 - **Fasting** card: pick a plan (12:12 to 24:0), start after your last meal and it counts
