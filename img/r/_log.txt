@@ -478,3 +478,16 @@
 23:34:48 ok 319/1998 Beef schnitzel with coleslaw
 23:34:55 ok 320/1998 Steak with chips and salad
 23:34:55 ok 321/1998 Steak with mash and greens
+23:34:59 ok 322/1998 Eye fillet with mushroom sauce
+23:34:59 ok 323/1998 Pepper steak with sweet potato mash
+23:35:07 ok 324/1998 Lamb chops with mint, peas and mash
+23:35:08 ok 325/1998 T-bone with garlic butter and salad
+23:35:10 ok 326/1998 Roast lamb with vegetables and gravy
+23:35:11 ok 327/1998 Lamb cutlets with roast vegetables
+23:35:18 ok 328/1998 Roast chicken with vegetables
+23:35:20 ok 329/1998 Roast chicken breast with sweet potato and greens
+23:35:22 ok 330/1998 Roast pork with crackling and apple sauce
+23:35:23 ok 331/1998 Roast beef with Yorkshire puddings
+23:35:30 ok 332/1998 Honey mustard roast chicken thighs
+23:35:32 ok 333/1998 Lemon and herb roast chicken drumsticks
+23:35:33 ok 334/1998 Chicken Kiev with vegetables

@@ -56,11 +56,35 @@ nutrition (websites and nutrition PDFs), collected October 2026:
 
 Add a country to a search to filter by it, e.g. "whopper uk" or "big mac usa".
 
+## Food list
+`foods.js` rows also carry fibre, total sugars, sodium and saturated fat per 100 g where
+USDA reports them. The food modal shows them under **More nutrients** (you can type them
+for packaged foods), and the Today tab totals fibre vs your goal, sugar, sodium vs your
+limit and saturated fat under the macros, noting how many logged items had no values.
+Fast-food items and quick adds don't carry them.
+
+## Today tab extras
+- **Quick add** logs calories (and optional macros) without choosing a food.
+- **Fasting** card: pick a plan (12:12 to 24:0), start after your last meal and it counts
+  while the app is closed; ending saves the fast to a history used for "this week".
+- **Notes for the day** under the meals, saved as you type and included in the CSV export.
+- Food search with nothing typed shows your saved meals, saved foods, most-logged foods
+  ("frequent") and recent items.
+- The weight card projects the date you'd reach your goal weight at the current two-week
+  trend, and the exercise list has 63 activities with MET values.
+
+## History tab
+**Last 7 days** shows the streak, average eaten and net, the week's balance against your
+goal in kcal and kg (next to what your chosen pace aims for), the actual trend change,
+protein, water, steps, and your best and worst day. The **Calendar** colours each day by
+whether it finished under or over the goal; tap a day to open it.
+
 ## Recipe pictures
 `img/` holds 48 dish illustrations (400 px WebP, about 1 MB in total, cached offline).
 `recipe-images.js` picks one for each recipe from its title — a curry gets the curry
-picture, a smoothie the smoothie, and so on — so they show the type of dish, not a photo of
-that exact recipe. Your own recipes get a picture the same way.
+picture, a smoothie the smoothie, and so on. When `img/r/` holds a picture named after a
+recipe (`<title-as-slug>.webp`, 320 px WebP) that one is shown instead and cached the first
+time it's seen; the dish-type picture is the fallback. Your own recipes use the dish type.
 
 ## Your own recipes
 Recipes → **+ My recipe**: name it, set the serves, search the food list for each
@@ -104,7 +128,7 @@ if you change quantities. Browse them on the Recipes tab or type "recipe" in the
 search (e.g. "recipe chicken curry") to see only recipes. Logging a recipe adds one serve
 (or the whole recipe) to the chosen meal.
 
-Values are per serve as the chain publishes them; menus change, so re-check
+Fast-food values are per serve as the chain publishes them; menus change, so re-check
 the chain's site for anything new. Settings → "Fast food menus to show first"
 puts your region's menus at the top of search results.
 
