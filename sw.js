@@ -1,5 +1,5 @@
 // Offline cache for Daily Fuel. Bump VERSION when shipping changes.
-const VERSION = "daily-fuel-v4";
+const VERSION = "daily-fuel-v5";
 const SHELL = ["./", "index.html", "foods.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const ZXING = "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js";
 
