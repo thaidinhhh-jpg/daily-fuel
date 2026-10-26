@@ -24,6 +24,13 @@ address (https). The easiest free option is GitHub Pages:
    - iPhone (Safari): Share → Add to Home Screen.
    - Android (Chrome): ⋮ menu → Install app.
 
+## Food list
+`foods.js` holds about 12,500 foods from USDA FoodData Central (public domain):
+SR Legacy (raw/cooked/dry ingredients, meat cuts, produce, brand-name fast food)
+plus the FNDDS survey foods (everyday dishes with real portion sizes). Values are
+per 100 g with portion weights. Packaged products not in the list can be found
+with barcode scan or "Search online" (Open Food Facts).
+
 ## Your data
 - Logs are stored on each device, in that browser only. They never go to
   GitHub or anywhere else.

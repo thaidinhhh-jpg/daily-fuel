@@ -378,8 +378,8 @@ th{font-size:12px;color:var(--muted);font-weight:600}
     <div class="fields">
       <div class="w4"><label>Food name</label><input id="fName"></div>
       <div class="w2"><label>Meal</label><select id="fMeal"></select></div>
-      <div><label>Servings</label><input type="number" id="fQty" value="1" min="0" step="0.25"></div>
-      <div><label>kcal / serving</label><input type="number" id="fKcal" min="0"></div>
+      <div><label id="lQty">Servings</label><input type="number" id="fQty" value="1" min="0" step="0.25"></div>
+      <div><label id="lKcal">kcal / serving</label><input type="number" id="fKcal" min="0"></div>
       <div><label>Protein g</label><input type="number" id="fP" min="0" step="0.1"></div>
       <div><label>Carbs g</label><input type="number" id="fC" min="0" step="0.1"></div>
       <div><label>Fat g</label><input type="number" id="fF" min="0" step="0.1"></div>
@@ -390,6 +390,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
       <button class="btn ghost" data-close>Cancel</button>
       <button class="btn" id="foodSubmit">Add</button>
     </div>
+    <p class="muted" style="font-size:11px;margin:10px 0 0">Food list: USDA FoodData Central (12,000+ foods). Packaged products: Open Food Facts.</p>
   </div>
 </div>
 
@@ -424,6 +425,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
 
 <div class="toast" id="toast"></div>
 
+<script src="foods.js"></script>
 <script>
 (function(){
 "use strict";
@@ -620,7 +622,7 @@ function renderToday(){
           yest.length?`<button class="link" style="color:var(--muted)" data-copymeal="${m}">Copy yesterday</button>`:""}
         <button class="link" data-addmeal="${m}">+ Add</button></span></div>
       ${items.length ? items.map(f=>`<div class="item">
-        <div class="nm">${esc(f.name)}<div class="sub">${f.qty!==1?f.qty+" × "+fmt(f.kcal)+" kcal · ":""}P ${fmt((f.p||0)*f.qty)} · C ${fmt((f.c||0)*f.qty)} · F ${fmt((f.f||0)*f.qty)}</div></div>
+        <div class="nm">${esc(f.name)}<div class="sub">${f.unit==="g"?fmt(f.grams)+" g · ":f.qty!==1?f.qty+" × "+fmt(f.kcal)+" kcal · ":""}P ${fmt((f.p||0)*f.qty)} · C ${fmt((f.c||0)*f.qty)} · F ${fmt((f.f||0)*f.qty)}</div></div>
         <span class="kc">${fmt(f.kcal*f.qty)}</span>
         <button class="x" title="Remove" data-delfood="${f.id}">&times;</button></div>`).join("")
         : `<div class="empty">Nothing logged yet</div>`}
@@ -775,6 +777,7 @@ $("#fMeal").innerHTML = MEALS.map(m=>`<option>${m}</option>`).join("");
 function defaultMeal(){ const h=new Date().getHours(); return h<11?"Breakfast":h<15?"Lunch":h<21?"Dinner":"Snacks"; }
 let pendingCode=null, curBases=[], onlineQ="", onlineRes=[], installEvt=null;
 function openFood(meal){
+  setWeightMode(false);
   picked=null; pendingCode=null; setBasis(null); onlineQ=""; onlineRes=[];
   ["#fName","#fKcal","#fP","#fC","#fF","#foodSearch"].forEach(s=>$(s).value="");
   $("#fQty").value=1; $("#fSave").checked=false;
@@ -786,28 +789,75 @@ function openFood(meal){
 function recentFoods(){
   const seen=new Set(), out=[];
   Object.keys(state.days).sort().reverse().forEach(k=>state.days[k].foods.slice().reverse().forEach(f=>{
-    const key=f.name.toLowerCase(); if(!seen.has(key) && out.length<8){ seen.add(key); out.push({name:f.name,kcal:f.kcal,p:f.p,c:f.c,f:f.f,src:"recent"}); }
+    const key=f.name.toLowerCase(); if(!seen.has(key) && out.length<8){ seen.add(key); out.push({name:f.name,kcal:f.kcal,p:f.p,c:f.c,f:f.f,unit:f.unit,grams:f.grams,src:"recent"}); }
   }));
   return out;
 }
 let results=[];
 const dedupe = arr => arr.filter((f,i,a)=>a.findIndex(g=>g.name.toLowerCase()===f.name.toLowerCase())===i);
+// the big USDA list (foods.js), built on first search; values are per 100 g
+let BIG=null;
+function bigFoods(){
+  if(!BIG) BIG=(window.FOODS||[]).map(r=>{ const lc=r[0].toLowerCase();
+    // "head" drops USDA group prefixes so "Fish, salmon, ..." ranks as a salmon
+    return {name:r[0],cat:(window.FOOD_CATS||[])[r[1]]||"",kcal:r[2],p:+r[3],c:+r[4],f:+r[5],por:r[6],src:"usda",lc,
+      head:lc.replace(/^(fish|beverages|alcoholic beverage|candies|snacks|spices|nuts|seeds|cereals ready-to-eat|game meat|crustaceans|mollusks|fast foods|restaurant, [a-z]+), /,"")}; });
+  return BIG;
+}
+// Aussie/UK words and common alternatives -> the words the USDA list uses
+const SYN={dry:["dry","raw","uncooked"],uncooked:["raw","uncooked","dry"],raw:["raw","uncooked"],mince:["beef, ground","ground beef","ground turkey","ground pork","ground chicken","pork, ground","lamb, ground","turkey, ground","chicken, ground","mince"],
+  prawn:["shrimp","prawn"],prawns:["shrimp","prawn"],capsicum:["peppers, sweet","capsicum"],courgette:["zucchini"],aubergine:["eggplant"],
+  coriander:["coriander","cilantro"],rocket:["arugula","rocket"],beetroot:["beet"],crisps:["chips","crisps"],chips:["chips","fries","french fr"],
+  fries:["fries","french fr"],lollies:["candies","candy"],lolly:["candies","candy"],biscuit:["cookie","biscuit","cracker"],biscuits:["cookie","biscuit","cracker"],
+  yoghurt:["yogurt","yoghurt"],mcdonalds:["mcdonald"],"mcdonald's":["mcdonald"],maccas:["mcdonald"],hungry:["burger king","hungry"],jacks:["burger king","jack"],
+  "jack's":["burger king","jack"],rockmelon:["cantaloupe","rockmelon"],silverbeet:["chard"],scallion:["onions, spring","scallion"],
+  "spring":["spring","scallion"],porridge:["oat","porridge"],bbq:["bbq","barbecue"],barbeque:["barbecue","bbq"],donut:["doughnut","donut"],
+  sultanas:["raisins","sultana"],icecream:["ice cream"],softdrink:["carbonated","soft drink","cola"],soda:["carbonated","soda","cola"],
+  steak:["steak","sirloin","rib eye","ribeye","tenderloin","t-bone","porterhouse"],ribeye:["rib eye","ribeye","rib, small end"],
+  snag:["sausage"],snags:["sausage"],sausages:["sausage"],eggs:["egg"],tomatoes:["tomato"],potatoes:["potato"],chickpeas:["chickpea","garbanzo"],
+  chickpea:["chickpea","garbanzo"],cos:["romaine","cos"],grilled:["grilled","broiled"],roast:["roast"],bacon:["bacon"]};
+function bigScore(f, alts){
+  let s=f.head.length;
+  const first=alts[0];
+  if(!first.some(a=>f.head.startsWith(a))) s+=60;
+  // the plain food itself ("Bananas, raw", "Salmon, Atlantic, ...") beats dishes that merely start with it
+  else if(first.some(a=>new RegExp("^"+a.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(e?s)?,").test(f.head))) s-=30;
+  return s;
+}
+function usdaBases(f){
+  const per=g=>({kcal:f.kcal*g/100,p:f.p*g/100,c:f.c*g/100,f:f.f*g/100});
+  const out=(f.por?f.por.split(";"):[]).map(s=>{ const [l,g]=s.split("|"); return {label:`${l} (${fmt(+g)} g)`,...per(+g)}; });
+  out.push({label:"100 g",...per(100)});
+  out.push({label:"By weight (grams)",unit:"g",...per(100)});
+  return out;
+}
+let weightMode=false;
+function setWeightMode(on, grams){
+  const was=weightMode; weightMode=on;
+  $("#lQty").textContent = on?"Grams":"Servings";
+  $("#lKcal").textContent = on?"kcal / 100 g":"kcal / serving";
+  $("#fQty").step = on?"1":"0.25";
+  if(on) $("#fQty").value = grams||100; else if(was) $("#fQty").value = 1;
+}
+const qtyFactor = () => weightMode ? num($("#fQty").value)/100 : num($("#fQty").value);
 function searchFoods(){
   const q=$("#foodSearch").value.trim().toLowerCase();
   const mine = state.myFoods.map(f=>({...f,src:"mine"}));
   const combos = state.combos.map((c,i)=>({name:c.name,src:"combo",ci:i,n:c.items.length,kcal:c.items.reduce((a,f)=>a+f.kcal*f.qty,0)}));
   if(!q){ results = [...combos, ...dedupe([...mine, ...recentFoods()])].slice(0,14); }
   else{
-    const words=q.split(/\s+/);
-    const match=f=>words.every(w=>f.name.toLowerCase().includes(w));
-    results=[...combos.filter(match), ...dedupe([...mine.filter(match), ...recentFoods().filter(match), ...FOOD_DB.filter(match)]).slice(0,30)];
+    const words=q.split(/\s+/).filter(Boolean), alts=words.map(w=>SYN[w]||[w]);
+    const match=f=>{ const n=f.lc||f.name.toLowerCase(); return alts.every(a=>a.some(x=>n.includes(x))); };
+    const big=bigFoods().filter(match).map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).slice(0,50).map(x=>x[0]);
+    results=[...combos.filter(match), ...dedupe([...mine.filter(match), ...recentFoods().filter(match), ...FOOD_DB.filter(match)]).slice(0,15), ...big];
     if(onlineQ===q) results=results.concat(onlineRes);
   }
   const tag = f => f.src==="mine"?'<span class="tag">★ mine</span>':f.src==="recent"?'<span class="tag">recent</span>':
-    f.src==="combo"?`<span class="tag">★ meal · ${f.n} item${f.n===1?"":"s"}</span>`:f.src==="online"?'<span class="tag">online</span>':"";
+    f.src==="combo"?`<span class="tag">★ meal · ${f.n} item${f.n===1?"":"s"}</span>`:f.src==="online"?'<span class="tag">online</span>':
+    f.src==="usda"?`<span class="tag">${esc(f.cat)}</span>`:"";
   const onlineRow = q.length>=3 && onlineQ!==q ? `<div class="res online" data-online="1">Search online for “${esc(q)}”…</div>` : "";
   $("#foodResults").innerHTML = (results.length ? results.map((f,i)=>`<div class="res" data-res="${i}">
-      <span>${esc(f.name)}${tag(f)}</span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal</span></div>`).join("")
+      <span>${esc(f.name)}${tag(f)}</span><span class="muted" style="white-space:nowrap">${fmt(f.kcal)} kcal${f.src==="usda"||f.unit==="g"?"/100 g":""}</span></div>`).join("")
     : `<div class="empty" style="padding:10px">${q?(onlineQ===q?"Nothing found online either — enter the details below.":"No match in your foods."):"Type to search, scan a barcode, or enter a food manually below."}</div>`) + onlineRow;
 }
 async function searchOnline(){
@@ -832,7 +882,10 @@ function offToFood(p){
   const bases=[];
   const kS=n["energy-kcal_serving"]??kj(n.energy_serving), k100=n["energy-kcal_100g"]??kj(n.energy_100g);
   if(kS!=null) bases.push({label:`Per serving${p.serving_size?" ("+p.serving_size+")":""}`,kcal:kS,p:n.proteins_serving,c:n.carbohydrates_serving,f:n.fat_serving});
-  if(k100!=null) bases.push({label:"Per 100 g / ml",kcal:k100,p:n.proteins_100g,c:n.carbohydrates_100g,f:n.fat_100g});
+  if(k100!=null){
+    bases.push({label:"Per 100 g / ml",kcal:k100,p:n.proteins_100g,c:n.carbohydrates_100g,f:n.fat_100g});
+    bases.push({label:"By weight (grams)",unit:"g",kcal:k100,p:n.proteins_100g,c:n.carbohydrates_100g,f:n.fat_100g});
+  }
   return {name, bases};
 }
 const r1 = v => v==null||!isFinite(v) ? 0 : Math.round(v*10)/10;
@@ -846,6 +899,7 @@ function setBasis(bases){
 }
 function chooseBasis(i){
   const b=curBases[i], name=$("#fName").value;
+  setWeightMode(b.unit==="g");
   fillFields({...b,name});
   $("#basis").innerHTML = curBases.map((x,j)=>`<button class="chip ${j===i?"on":""}" data-basis="${j}">${esc(x.label)} · ${fmt(x.kcal)} kcal</button>`).join("");
 }
@@ -856,8 +910,9 @@ function pick(i){
   const f=results[i]; if(!f) return;
   if(f.src==="combo"){ logCombo(f.ci); return; }
   $$(".res").forEach((r,j)=>r.classList.toggle("sel",j===i));
+  if(f.src==="usda"){ picked=f; pendingCode=null; $("#fName").value=f.name; setBasis(usdaBases(f)); chooseBasis(0); return; }
   if(f.bases){ applyProduct(f, f.code); return; }
-  picked=f; pendingCode=null; setBasis(null); fillFields(f);
+  picked=f; pendingCode=null; setBasis(null); setWeightMode(f.unit==="g", f.grams); fillFields(f);
 }
 function logCombo(ci){
   const c=state.combos[ci], meal=$("#fMeal").value;
@@ -927,7 +982,7 @@ async function lookupBarcode(raw){
   const code=String(raw).replace(/\D/g,"");
   if(code.length<6){ toast("That doesn't look like a barcode number"); return; }
   stopScan(); $("#scanModal").classList.remove("open");
-  if(state.barcodes[code]){ pendingCode=code; setBasis(null); fillFields(state.barcodes[code]); toast("Found in your scanned foods"); return; }
+  if(state.barcodes[code]){ const b=state.barcodes[code]; pendingCode=code; setBasis(null); setWeightMode(b.unit==="g", b.grams); fillFields(b); toast("Found in your scanned foods"); return; }
   toast("Looking up "+code+"…");
   try{
     const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,serving_size,nutriments`);
@@ -938,19 +993,22 @@ async function lookupBarcode(raw){
   pendingCode=code; setBasis(null);
   ["#fName","#fKcal","#fP","#fC","#fF"].forEach(s=>$(s).value=""); updTotal(); $("#fName").focus();
 }
-function updTotal(){ $("#fTotal").value = fmt(num($("#fKcal").value)*num($("#fQty").value)) + " kcal"; }
+function updTotal(){ $("#fTotal").value = fmt(num($("#fKcal").value)*qtyFactor()) + " kcal"; }
 function submitFood(){
-  const name=$("#fName").value.trim(), kcal=num($("#fKcal").value), qty=num($("#fQty").value);
+  const name=$("#fName").value.trim(), kcal=num($("#fKcal").value), qty=qtyFactor();
   if(!name){ toast("Give the food a name"); $("#fName").focus(); return; }
-  if(!qty){ toast("Servings must be more than 0"); return; }
+  if(!qty){ toast(weightMode?"Enter how many grams":"Servings must be more than 0"); return; }
   const item={id:uid(),meal:$("#fMeal").value,name,kcal,p:num($("#fP").value),c:num($("#fC").value),f:num($("#fF").value),qty};
+  // by weight: values are per 100 g and qty is grams/100
+  const wt = weightMode ? {unit:"g", grams:num($("#fQty").value)} : {};
+  Object.assign(item, wt);
   day().foods.push(item);
   if($("#fSave").checked){
     const ex=state.myFoods.findIndex(f=>f.name.toLowerCase()===name.toLowerCase());
-    const mf={name,kcal,p:item.p,c:item.c,f:item.f};
+    const mf={name,kcal,p:item.p,c:item.c,f:item.f,...wt};
     if(ex>=0) state.myFoods[ex]=mf; else state.myFoods.push(mf);
   }
-  if(pendingCode) state.barcodes[pendingCode]={name,kcal,p:item.p,c:item.c,f:item.f};
+  if(pendingCode) state.barcodes[pendingCode]={name,kcal,p:item.p,c:item.c,f:item.f,...wt};
   save(); closeModals(); render(); toast(`Added ${name} · ${fmt(kcal*qty)} kcal`);
 }
 
