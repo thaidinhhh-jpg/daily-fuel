@@ -63,6 +63,14 @@ for packaged foods), and the Today tab totals fibre vs your goal, sugar, sodium 
 limit and saturated fat under the macros, noting how many logged items had no values.
 Fast-food items and quick adds don't carry them.
 
+## Browsing recipes
+The Recipes tab opens on a browse page: recipe of the day, then tiles for meal (Breakfast, Lunch,
+Dinner, Snacks, Desserts, Drinks, Sides, Kids), calories per serve, diet and style, an "All
+categories" list, and a horizontally scrolling row of recipes for every category with a "More"
+link. Picking a tile or typing a search switches to the results grid, where the active filters
+show as removable chips, "Refine" adds diet, style and calorie chips, a sort menu orders by
+calories, protein, time or name, and results load 48 at a time. "‹ Browse" goes back.
+
 ## Food ratings and diet filters
 Every food in search and every recipe shows a coloured dot: **green** good choice, **amber**
 fine in moderation, **red** limit. It's worked out per 100 g from sugar, saturated fat and
