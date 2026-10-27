@@ -291,7 +291,15 @@ h2 .btns{display:inline-flex}
 .srow:last-child{border-bottom:0}
 .srow:hover{background:var(--bg)}
 .srow.on{background:var(--accent-soft)}
-.srow .ico{width:36px;height:36px;border-radius:10px;background:var(--bg);display:grid;place-items:center;font-size:18px;flex:none}
+.srow .ico,.wrow .ico{width:36px;height:36px;border-radius:10px;background:var(--bg);display:grid;place-items:center;font-size:18px;flex:none}
+.wrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.wrow:last-child{border-bottom:0}
+.wrow>span:nth-child(2){flex:1;min-width:0}
+.wrow small{display:block;color:var(--muted);font-size:12px}
+.wrow .ok{font-weight:600;font-size:13px}
+.hello{text-align:center;margin:4px 0 10px}
+.hello .big{font-size:44px;line-height:1}
+.hello p{font-size:15px;margin:8px 0 0}
 .srow.on .ico{background:var(--card)}
 .srow>span:nth-child(2){min-width:0;flex:1}
 .srow .st{display:block;font-weight:600;font-size:14px}
@@ -515,6 +523,7 @@ h2 .btns{display:inline-flex}
   <section id="tab-settings" class="hidden">
     <div class="sx">
       <div class="slist card" id="slist">
+        <button class="srow" data-sopen="account"><span class="ico">👤</span><span><span class="st">Account &amp; sync</span><span class="ss" id="ssum-account"></span></span><span class="chev">›</span></button>
         <button class="srow" data-sopen="profile"><span class="ico">🧍</span><span><span class="st">Profile &amp; goal</span><span class="ss" id="ssum-profile"></span></span><span class="chev">›</span></button>
         <button class="srow" data-sopen="nutrition"><span class="ico">🥗</span><span><span class="st">Nutrition targets</span><span class="ss" id="ssum-nutrition"></span></span><span class="chev">›</span></button>
         <button class="srow" data-sopen="activity"><span class="ico">💧</span><span><span class="st">Water &amp; activity</span><span class="ss" id="ssum-activity"></span></span><span class="chev">›</span></button>
@@ -528,6 +537,10 @@ h2 .btns{display:inline-flex}
       </div>
       <div id="spanels">
         <button class="link sback" data-sback>‹ Settings</button>
+
+        <div class="spanel hidden" data-spanel="account">
+          <div class="card" id="acctCard"></div>
+        </div>
 
         <div class="spanel hidden" data-spanel="profile">
           <div class="card">
@@ -897,11 +910,12 @@ h2 .btns{display:inline-flex}
 <script src="fastfood.js"></script>
 <script src="recipes.js"></script>
 <script src="recipe-images.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 (function(){
 "use strict";
 const KEY = "dailyFuel.v1";
-const APP_VERSION = "v21";   // keep in step with VERSION in sw.js
+const APP_VERSION = "v22";   // keep in step with VERSION in sw.js
 const MEALS = ["Breakfast","Lunch","Dinner","Snacks"];
 
 // per-serving: name, kcal, protein, carbs, fat
@@ -955,16 +969,17 @@ let cur = todayKey();
 function fresh(s){ s=s||{}; return {settings:{...DEFAULTS,...s.settings},days:s.days||{},myFoods:s.myFoods||[],weights:s.weights||{},
   combos:s.combos||[],barcodes:s.barcodes||{},theme:s.theme||"",plan:s.plan||{},shop:s.shop||{},backupAt:s.backupAt||0,myRecipes:s.myRecipes||[],
   fast:s.fast||null,fasts:s.fasts||[],fastHours:s.fastHours==null?16:s.fastHours,measures:s.measures||{},health:s.health||null,
-  mealNames:s.mealNames||{},mealOrder:s.mealOrder||[],favs:s.favs||[],remFired:s.remFired||{},
+  mealNames:s.mealNames||{},mealOrder:s.mealOrder||[],favs:s.favs||[],remFired:s.remFired||{},sync:s.sync||null,
   setupDone:!!(s.setupDone || Object.keys(s.days||{}).length || Object.keys(s.weights||{}).length)}; }
 // merge a backup into the current data: keep both sets of days (entries de-duplicated by id), weights, foods and meals
+function mergeDay(a,b){   // adds b's entries into day a (in place); a's note, mood, tags and goal win when set
+  ["foods","water","exercise"].forEach(key=>{ a[key]=a[key]||[]; const ids=new Set(a[key].map(x=>x.id)); (b[key]||[]).forEach(x=>{ if(!ids.has(x.id)) a[key].push(x); }); });
+  a.steps=Math.max(a.steps||0,b.steps||0); if(!a.note&&b.note) a.note=b.note; if(!a.mood&&b.mood) a.mood=b.mood; if(!(a.tags||[]).length&&b.tags) a.tags=b.tags; if(!a.goal&&b.goal) a.goal=b.goal;
+  return a;
+}
 function mergeState(cur, inc){
   const out=fresh(cur);
-  Object.keys(inc.days||{}).forEach(k=>{
-    const a=out.days[k], b=inc.days[k]; if(!a){ out.days[k]=b; return; }
-    ["foods","water","exercise"].forEach(key=>{ const ids=new Set((a[key]||[]).map(x=>x.id)); (b[key]||[]).forEach(x=>{ if(!ids.has(x.id)) a[key].push(x); }); });
-    a.steps=Math.max(a.steps||0,b.steps||0); if(!a.note&&b.note) a.note=b.note; if(!a.mood&&b.mood) a.mood=b.mood; if(!(a.tags||[]).length&&b.tags) a.tags=b.tags; if(!a.goal&&b.goal) a.goal=b.goal;
-  });
+  Object.keys(inc.days||{}).forEach(k=>{ const a=out.days[k], b=inc.days[k]; if(!a) out.days[k]=b; else mergeDay(a,b); });
   Object.keys(inc.measures||{}).forEach(k=>{ out.measures[k]={...(inc.measures[k]||{}),...(out.measures[k]||{})}; });
   const fs=new Set(out.fasts.map(x=>x.start)); (inc.fasts||[]).forEach(x=>{ if(!fs.has(x.start)) out.fasts.push(x); }); out.fasts.sort((a,b)=>a.start-b.start);
   Object.keys(inc.weights||{}).forEach(k=>{ if(out.weights[k]==null) out.weights[k]=inc.weights[k]; });
@@ -984,7 +999,7 @@ function load(){
   }catch(e){}
   return fresh();
 }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast("Couldn't save — storage blocked"); } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast("Couldn't save — storage blocked"); } cloudTouch(); }
 function day(k){ k=k||cur; if(!state.days[k]) state.days[k]={foods:[],water:[],steps:0,exercise:[]}; return state.days[k]; }
 // foods you log most often (last 60 days), for the empty search
 function frequentFoods(){
@@ -1114,7 +1129,7 @@ function renderToday(){
   $("#noteBlock").classList.toggle("hidden", !+s.showNotes);
   // nudge for a backup once there's something worth losing
   const sinceBackup=(Date.now()-(state.backupAt||0))/864e5, logged=Object.keys(state.days).length;
-  const nag = logged>=5 && sinceBackup>14;
+  const nag = logged>=5 && sinceBackup>14 && !(cloud && cloud.user && state.sync && state.sync.at);
   $("#backupNag").classList.toggle("hidden", !nag);
   if(nag) $("#backupNag").innerHTML = `${state.backupAt?`Last backup ${Math.floor(sinceBackup)} days ago`:"No backup yet"} — your log lives only in this browser. <button class="link" data-gotab="settings">Export a backup</button>`;
 
@@ -1428,7 +1443,7 @@ function renderSettings(){
   const wd=String(s.weekendDays||""), n=wd.length;
   $("#weekendNote").textContent = wd && +s.weekendExtra ? `Weekend days get ${fmt(s.calGoal+ +s.weekendExtra)} kcal and the other ${7-n} days ${fmt(Math.round((s.calGoal-s.weekendExtra*n/(7-n))/5)*5)} kcal, so the week still adds up to ${fmt(s.calGoal*7)} kcal.` : "";
   $("#mealTimes").innerHTML = order.map(m=>`<div><label>${esc(mealName(m))}</label><input type="time" data-sets="t${m}" value="${esc(s["t"+m]||"")}"></div>`).join("");
-  renderRemState();
+  renderRemState(); renderAccount();
   $("#ffRegion").value = s.ffRegion||"";
   $("#backupInfo").innerHTML = state.backupAt ? `Last backup: <b>${new Date(state.backupAt).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}</b>` : `<b>No backup yet.</b>`;
   $("#shareBtn").classList.toggle("hidden", !(navigator.canShare && window.File));
@@ -2164,6 +2179,10 @@ document.addEventListener("click", e=>{
   if(ds.rkcal!==undefined){ rkcal=ds.rkcal; renderRecipes(); return; }
   if(ds.wiz!==undefined){ wizGo(ds.wiz); return; }
   if(ds.wizpick){ const [k,v]=ds.wizpick.split("|"); wiz[k]=v; wizRender(); return; }
+  if(ds.wizrem!==undefined){ remAllow(true).then(wizRender); return; }
+  if(ds.wizhealth!==undefined){ healthConnect().then(wizRender); return; }
+  if(ds.wizacct!==undefined){ wiz.acct=true; wizRender(); const e=$("#wizBody .acEmail"); if(e) e.focus(); return; }
+  if(ds.acct){ acctAction(ds.acct, t.closest("[data-acctbox]")||document.body); return; }
   if(t.id==="weightDel"){ delete state.weights[cur]; save(); render(); toast("Weigh-in removed"); return; }
 });
 $("#prevDay").onclick=()=>{ cur=shift(cur,-1); render(); };
@@ -2302,7 +2321,7 @@ $("#importFile").onchange=e=>{
     }catch(err){ toast("That file isn't a Daily Fuel backup"); } };
   r.readAsText(file); e.target.value="";
 };
-$("#resetBtn").onclick=()=>{ if(confirm("Erase ALL logged days, saved foods and goals? This can't be undone.")){ state=fresh(); save(); applyTheme(); render(); toast("All data erased"); } };
+$("#resetBtn").onclick=async()=>{ if(confirm(`Erase ALL logged days, saved foods and goals on this device? This can't be undone.${cloud.user?" (You'll be signed out; the copy in your account is kept.)":""}`)){ if(cloud.user){ try{ await cloud.api.signOut(); }catch(e){} cloudForget(); } state=fresh(); save(); applyTheme(); render(); toast("All data erased"); } };
 
 // installable app: offline cache + install prompt (only works when served over http/https)
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
@@ -2355,15 +2374,21 @@ const WIZ_PACES={lose:[["-0.25","Gentle · 0.25 kg a week"],["-0.5","Steady · 0
 function wizOpen(){ wiz={step:0, goal:"lose", diet:state.settings.diet||""}; wizRender(); $("#setupModal").classList.add("open"); }
 function wizRender(){
   const s=state.settings, b=$("#wizBody"), opt=(k,v,l,sub)=>`<button class="opt ${wiz[k]===v?"on":""}" data-wizpick="${k}|${v}">${l}${sub?`<small>${sub}</small>`:""}</button>`;
-  $("#wizProg").style.width=((wiz.step+1)/3*100)+"%";
+  $("#wizProg").style.width=((wiz.step+1)/5*100)+"%";
   $("#wizBack").classList.toggle("hidden", wiz.step===0);
-  $("#wizNext").textContent = wiz.step===2 ? "Start tracking" : "Next ›";
+  $("#wizNext").textContent = wiz.step===4 ? "Start tracking" : wiz.step===0 ? "Get started" : "Next ›";
   if(wiz.step===0){
+    $("#wizTitle").textContent="Welcome to Daily Fuel";
+    b.innerHTML = `<div class="hello"><div class="big">🥗</div><p>Log what you eat in seconds, watch your calories, macros, water, steps and weight, and reach your goal at a pace that suits you.</p></div>
+      <div class="wrow"><span class="ico">🔍</span><span><b>Fast food logging</b><small>17,000 foods, a barcode scanner and 2,000 recipes with step-by-step cooking</small></span></div>
+      <div class="wrow"><span class="ico">📈</span><span><b>The whole picture</b><small>Daily ring, meal budgets, weight trend, weekly insights and a meal planner</small></span></div>
+      <div class="wrow"><span class="ico">🔒</span><span><b>Yours to keep</b><small>Everything stays on your device${cloudOn()?" — add a free account to back it up and sync between devices":""}</small></span></div>`;
+  } else if(wiz.step===1){
     $("#wizTitle").textContent="What's your main goal?";
     b.innerHTML = `<div class="opts">${opt("goal","lose","Lose weight","A calorie goal below what you burn")}${opt("goal","maintain","Maintain / eat healthier","Match what you burn and watch the balance")}${opt("goal","gain","Gain weight or build muscle","A small surplus with plenty of protein")}</div>
       <p class="muted" style="font-size:13px;margin:14px 0 6px">Do you follow a specific diet? Recipes will be filtered to match.</p>
       <div class="btns">${[["","Classic"],["Vegetarian","Vegetarian"],["Vegan","Vegan"],["Pescatarian","Pescatarian"]].map(([v,l])=>`<button class="chip ${wiz.diet===v?"on":""}" data-wizpick="diet|${v}">${l}</button>`).join("")}</div>`;
-  } else if(wiz.step===1){
+  } else if(wiz.step===2){
     $("#wizTitle").textContent="About you";
     const paces=WIZ_PACES[wiz.goal], rate=paces.some(p=>+p[0]===+s.rate)?String(+s.rate):paces[Math.min(1,paces.length-1)][0];
     b.innerHTML = `<p class="muted" style="font-size:13px;margin-top:0">Used for the calorie formula (Mifflin-St Jeor). You can change any of it later in Settings.</p>
@@ -2376,6 +2401,13 @@ function wizRender(){
         <div class="w2"><label>Activity</label><select id="wzAct">${[["1.2","Sedentary — desk job, little exercise"],["1.375","Light — exercise 1–3 days/week"],["1.55","Moderate — exercise 3–5 days/week"],["1.725","Very active — 6–7 days/week"],["1.9","Athlete — hard training or physical job"]].map(([v,l])=>`<option value="${v}" ${+v===+s.activity?"selected":""}>${l}</option>`).join("")}</select></div>
         <div class="w4"><label>Pace</label><select id="wzRate">${paces.map(([v,l])=>`<option value="${v}" ${v===rate?"selected":""}>${l}</option>`).join("")}</select></div>
       </div>`;
+  } else if(wiz.step===4){
+    $("#wizTitle").textContent="Finishing touches";
+    const p=remPermission(), hk=/iP/.test(navigator.userAgent)?"Apple Health":"Health Connect";
+    b.innerHTML = `<p class="muted" style="font-size:13px;margin-top:0">All optional — each can be turned on later in Settings.</p>
+      <div class="wrow"><span class="ico">🔔</span><span><b>Reminders</b><small>Nudges to log meals and drink water, at times you choose</small></span>${p==="granted"?`<span class="ok">On</span>`:p==="denied"?`<span class="muted" style="font-size:12px">Blocked</span>`:p==="unsupported"?`<span class="muted" style="font-size:12px">Phone app only</span>`:`<button class="btn ghost" data-wizrem>Allow</button>`}</div>
+      ${NATIVE?`<div class="wrow"><span class="ico">❤️</span><span><b>Health sync</b><small>Steps and weight from ${hk}, weigh-ins written back</small></span>${state.health&&state.health.on?`<span class="ok">On</span>`:`<button class="btn ghost" data-wizhealth>Connect</button>`}</div>`:""}
+      ${cloudOn()?`<div class="wrow"><span class="ico">👤</span><span><b>Account</b><small>${cloud.user?"Signed in as "+esc(cloud.user.email):"Back up your log and sync it between your phone and computer"}</small></span>${cloud.user?`<span class="ok">On</span>`:wiz.acct?"":`<button class="btn ghost" data-wizacct>Set up</button>`}</div>${!cloud.user&&wiz.acct?acctForm():""}`:""}`;
   } else {
     $("#wizTitle").textContent="Your plan";
     const bd=body(), mg={p:bd.suggest*s.macroP/100/4, c:bd.suggest*s.macroC/100/4, f:bd.suggest*s.macroF/100/9};
@@ -2391,14 +2423,16 @@ function wizRender(){
 function wizGo(a){
   if(a==="skip"){ state.setupDone=true; save(); closeModal($("#setupModal")); return; }
   if(a==="back"){ wiz.step=Math.max(0,wiz.step-1); wizRender(); return; }
-  if(wiz.step===0){ state.settings.diet=wiz.diet; wiz.step=1; wizRender(); return; }
-  if(wiz.step===1){
+  if(wiz.step===0){ wiz.step=1; wizRender(); return; }
+  if(wiz.step===1){ state.settings.diet=wiz.diet; wiz.step=2; wizRender(); return; }
+  if(wiz.step===2){
     const s=state.settings, h=num($("#wzH").value), w=num($("#wzW").value);
     if(!h||!w){ toast("Enter your height and weight"); return; }
     s.sex=+$("#wzSex").value; s.age=Math.round(num($("#wzAge").value))||30; s.heightCm=h; s.weightKg=w; s.goalWeight=num($("#wzGW").value)||0; s.activity=+$("#wzAct").value; s.rate=+$("#wzRate").value;
     if(s.goalWeight) s.startWeight=w;
-    s.calGoal=body().suggest; save(); wiz.step=2; wizRender(); return;
+    s.calGoal=body().suggest; save(); wiz.step=3; wizRender(); return;
   }
+  if(wiz.step===3){ wiz.step=4; wizRender(); return; }
   state.setupDone=true; save(); closeModal($("#setupModal")); render(); toast("You're set — add your first meal");
 }
 if(!state.setupDone && !location.search) setTimeout(wizOpen, 400);
@@ -2464,17 +2498,188 @@ async function remSchedule(){
     save(); renderRemState();
   }catch(e){ console.warn("reminders", e); }
 }
-$("#remAllow").onclick=async()=>{
-  if(LN){ try{ const p=await LN.requestPermissions(); state.remNative=p.display; save(); await remSchedule(); toast(p.display==="granted"?"Reminders on":"Notifications not allowed"); }catch(e){ toast("Couldn't ask for permission"); } return; }
-  if(!("Notification" in window)){ toast("This browser can't show notifications"); return; }
-  const p=await Notification.requestPermission(); renderRemState(); toast(p==="granted"?"Notifications allowed":"Notifications not allowed"); if(p==="granted") remTick();
-};
+async function remAllow(fromWizard){
+  let granted=false;
+  if(LN){ try{ const p=await LN.requestPermissions(); state.remNative=p.display; granted=p.display==="granted"; save(); toast(granted?"Reminders on":"Notifications not allowed"); }catch(e){ toast("Couldn't ask for permission"); } }
+  else if(!("Notification" in window)){ toast("This browser can't show notifications"); }
+  else { const p=await Notification.requestPermission(); granted=p==="granted"; toast(granted?"Notifications allowed":"Notifications not allowed"); }
+  if(granted && fromWizard){ state.settings.remMeals=1; state.settings.remWater=1; save(); }   // asked for from onboarding: switch the common ones on
+  renderRemState(); if(granted){ await remSchedule(); if(!LN) remTick(); }
+  return granted;
+}
+$("#remAllow").onclick=()=>remAllow(false);
 $("#remTest").onclick=()=>{ if(remPermission()!=="granted"){ toast("Allow notifications first"); return; } notify("Daily Fuel","Reminders are working 👍","df-test"); toast("Test sent"); };
 if(!LN){ remTickT=setInterval(remTick, 30000); setTimeout(remTick, 2000); }
 else { LN.checkPermissions().then(p=>{ state.remNative=p.display; remSchedule(); }).catch(()=>{}); }
 
 // ---------- URL hook for automations (iPhone Shortcuts, Tasker, etc.) ----------
 // ?steps=8421  ?weight=81.4  ?water=500  optional &date=YYYY-MM-DD (default today); the address is cleaned afterwards
+// ---------- account & cloud sync ----------
+// Backed by Firebase (config in firebase-config.js; null = accounts off). Per user the data is
+//   users/{uid}/months/{YYYY-MM} = {days:{"YYYY-MM-DD": day, …}, at}   and   users/{uid}/data/meta = {json, at}
+// Each day carries a `mod` stamp so the newer copy of a day wins when two devices disagree; meta (settings,
+// saved foods, weights…) takes the other device's settings when its copy is newer and unions the collections.
+// Setting localStorage "dailyFuel.v1.cloudMock" to "1" swaps in a local fake backend for trying the flow out.
+var cloud = {ready:false, api:null, user:null, busy:false, pulled:false, err:"", timer:0, cache:{months:{}, days:{}, meta:""}};
+const CLOUD_CFG = window.FIREBASE_CONFIG || null, CLOUD_MOCK = localStorage.getItem(KEY+".cloudMock")==="1";
+const cloudOn = () => !!(CLOUD_CFG || CLOUD_MOCK);
+const META_KEYS = ["settings","myFoods","weights","combos","barcodes","plan","shop","myRecipes","fast","fasts","fastHours","measures","mealNames","mealOrder","favs"];
+const metaJson = () => JSON.stringify(Object.fromEntries(META_KEYS.map(k=>[k,state[k]])));
+const monthOf = k => k.slice(0,7);
+function monthDays(m){ const o={}; Object.keys(state.days).forEach(k=>{ if(monthOf(k)===m) o[k]=state.days[k]; }); return o; }
+function cloudTouch(){ if(!cloud || !cloud.user || !cloud.pulled) return; clearTimeout(cloud.timer); cloud.timer=setTimeout(cloudScan, 3000); }
+function cloudForget(){ cloud.user=null; cloud.pulled=false; cloud.cache={months:{},days:{},meta:""}; state.sync=null; }
+
+function mockApi(){   // development stand-in: "server" kept in localStorage, 150 ms latency, same error codes as Firebase
+  const MK=KEY+".cloudMockDb", db=()=>JSON.parse(localStorage.getItem(MK)||"{}"), put=o=>localStorage.setItem(MK,JSON.stringify(o));
+  let cb=null; const user=()=>{ const d=db(); return d.session && d.users && d.users[d.session] ? {uid:d.session, email:d.users[d.session].email} : null; };
+  const later=f=>new Promise((res,rej)=>setTimeout(()=>{ try{ res(f()); }catch(e){ rej(e); } },150));
+  const bucket=(d,uid)=>{ d.data=d.data||{}; d.data[uid]=d.data[uid]||{months:{}}; return d.data[uid]; };
+  return {
+    init: async()=>{ setTimeout(()=>cb&&cb(user()),0); },
+    onAuth: f=>{ cb=f; },
+    signUp:(e,p)=>later(()=>{ const d=db(); d.users=d.users||{}; if(Object.values(d.users).some(u=>u.email===e)) throw {code:"auth/email-already-in-use"}; if(!/^\S+@\S+\.\S+$/.test(e)) throw {code:"auth/invalid-email"}; if(p.length<6) throw {code:"auth/weak-password"}; const uid="u"+Date.now(); d.users[uid]={email:e,p}; d.session=uid; put(d); cb&&cb(user()); }),
+    signIn:(e,p)=>later(()=>{ const d=db(); const uid=Object.keys(d.users||{}).find(u=>d.users[u].email===e); if(!uid||d.users[uid].p!==p) throw {code:"auth/invalid-credential"}; d.session=uid; put(d); cb&&cb(user()); }),
+    signOut:()=>later(()=>{ const d=db(); delete d.session; put(d); cb&&cb(null); }),
+    reset:e=>later(()=>{}),
+    getMonths:uid=>later(()=>{ const d=db(); return Object.entries(bucket(d,uid).months).map(([id,data])=>({id,data})); }),
+    setMonth:(uid,m,data)=>later(()=>{ const d=db(); bucket(d,uid).months[m]=data; put(d); }),
+    getMeta:uid=>later(()=>{ const d=db(); return bucket(d,uid).meta||null; }),
+    setMeta:(uid,data)=>later(()=>{ const d=db(); bucket(d,uid).meta=data; put(d); }),
+  };
+}
+async function firebaseApi(){
+  const base="https://www.gstatic.com/firebasejs/12.4.0/";
+  const [app, auth, fs] = await Promise.all([import(base+"firebase-app.js"), import(base+"firebase-auth.js"), import(base+"firebase-firestore-lite.js")]);
+  const a=app.initializeApp(CLOUD_CFG), au=auth.getAuth(a), db=fs.getFirestore(a);
+  return {
+    init: async()=>{},
+    onAuth: f=>auth.onAuthStateChanged(au, u=>f(u?{uid:u.uid,email:u.email}:null)),
+    signUp:(e,p)=>auth.createUserWithEmailAndPassword(au,e,p),
+    signIn:(e,p)=>auth.signInWithEmailAndPassword(au,e,p),
+    signOut:()=>auth.signOut(au),
+    reset:e=>auth.sendPasswordResetEmail(au,e),
+    getMonths:async uid=>(await fs.getDocs(fs.collection(db,"users",uid,"months"))).docs.map(d=>({id:d.id,data:d.data()})),
+    setMonth:(uid,m,data)=>fs.setDoc(fs.doc(db,"users",uid,"months",m),data),
+    getMeta:async uid=>{ const d=await fs.getDoc(fs.doc(db,"users",uid,"data","meta")); return d.exists()?d.data():null; },
+    setMeta:(uid,data)=>fs.setDoc(fs.doc(db,"users",uid,"data","meta"),data),
+  };
+}
+async function cloudInit(){
+  if(!cloudOn()) return null;
+  if(cloud.api) return cloud.api;
+  if(cloud.loading) return cloud.loading;
+  cloud.loading=(async()=>{
+    try{ cloud.api = CLOUD_MOCK ? mockApi() : await firebaseApi(); }
+    catch(e){ cloud.err="Couldn't reach the sign-in service — check your connection."; cloud.loading=null; renderAccount(); return null; }
+    cloud.ready=true; cloud.err="";
+    cloud.api.onAuth(u=>{
+      const was=cloud.user&&cloud.user.uid; cloud.user=u;
+      if(u){ state.sync={...(state.sync||{}), uid:u.uid, email:u.email}; localStorage.setItem(KEY, JSON.stringify(state)); if(u.uid!==was) cloudPull(false); }
+      else if(was || state.sync){ cloudForget(); localStorage.setItem(KEY, JSON.stringify(state)); }
+      renderAccount(); render();
+    });
+    await cloud.api.init();
+    return cloud.api;
+  })();
+  return cloud.loading;
+}
+async function cloudPull(manual){
+  const api=cloud.api, u=cloud.user; if(!api||!u||cloud.busy) return;
+  cloud.busy=true; cloud.err=""; renderAccount();
+  try{
+    const months=await api.getMonths(u.uid), meta=await api.getMeta(u.uid); let n=0;
+    months.forEach(({id,data})=>{
+      const days=(data&&data.days)||{};
+      Object.keys(days).forEach(k=>{
+        const r=days[k], l=state.days[k];
+        if(!l){ state.days[k]=r; n++; }                                  // only on the server
+        else if(!l.mod){ mergeDay(l,r); n++; }                             // never synced from here: keep both sides' entries
+        else if((r.mod||0)>l.mod){ state.days[k]=r; n++; }                 // server copy is newer
+        cloud.cache.days[k]=JSON.stringify(r);
+      });
+      cloud.cache.months[id]=JSON.stringify(days);
+    });
+    if(meta && meta.json){
+      if((meta.at||0) > ((state.sync&&state.sync.metaAt)||0)){
+        const inc=JSON.parse(meta.json), merged=mergeState(state, {...inc, days:{}});
+        ["settings","mealNames","mealOrder","fastHours","fast"].forEach(k=>{ if(inc[k]!==undefined) merged[k]=inc[k]; });   // the newer device's setup wins
+        META_KEYS.forEach(k=>{ state[k]=merged[k]; }); state.settings={...DEFAULTS,...state.settings}; n++;
+        state.sync={...(state.sync||{}), metaAt:meta.at};
+      }
+      cloud.cache.meta=meta.json;
+    }
+    cloud.pulled=true; state.sync={...(state.sync||{}), at:Date.now()};
+    localStorage.setItem(KEY, JSON.stringify(state)); render();
+    await cloudScan();   // anything newer on this device goes up
+    if(manual) toast(n?`Synced · ${n} update${n===1?"":"s"} pulled`:"Synced · up to date");
+  }catch(e){ cloud.err=cloudErr(e); if(manual) toast("Sync failed — see Account & sync"); }
+  cloud.busy=false; renderAccount();
+}
+async function cloudScan(){
+  const api=cloud.api, u=cloud.user; if(!api||!u||!cloud.pulled) return;
+  const now=Date.now(), months={}; Object.keys(state.days).forEach(k=>{ months[monthOf(k)]=1; });
+  let changed=false;
+  try{
+    for(const m of Object.keys(months)){
+      const days=monthDays(m); if(JSON.stringify(days)===cloud.cache.months[m]) continue;
+      Object.keys(days).forEach(k=>{ if(JSON.stringify(days[k])!==cloud.cache.days[k]){ days[k].mod=now; cloud.cache.days[k]=JSON.stringify(days[k]); } });
+      await api.setMonth(u.uid, m, JSON.parse(JSON.stringify({days, at:now}))); cloud.cache.months[m]=JSON.stringify(days); changed=true;
+    }
+    const mj=metaJson();
+    if(mj!==cloud.cache.meta){ await api.setMeta(u.uid, {json:mj, at:now}); cloud.cache.meta=mj; state.sync={...(state.sync||{}), metaAt:now}; changed=true; }
+    if(changed){ state.sync={...(state.sync||{}), at:now}; cloud.err=""; }
+  }catch(e){ cloud.err=cloudErr(e); changed=true; }
+  if(changed){ localStorage.setItem(KEY, JSON.stringify(state)); renderAccount(); }   // not save(): that would schedule another scan
+}
+function cloudErr(e){
+  const c=(e&&e.code)||"";
+  return ({"auth/email-already-in-use":"That email already has an account — sign in instead.","auth/invalid-email":"That doesn't look like an email address.","auth/weak-password":"Use a password of at least 6 characters.",
+    "auth/invalid-credential":"Wrong email or password.","auth/wrong-password":"Wrong email or password.","auth/user-not-found":"No account with that email — create one.","auth/missing-password":"Enter a password.",
+    "auth/too-many-requests":"Too many attempts — try again in a few minutes.","auth/network-request-failed":"No connection — try again when you're online.","permission-denied":"The server refused the request — check the Firestore rules."})[c] || (e&&e.message) || String(e);
+}
+async function acctAction(a, box){
+  const msg=box.querySelector(".acMsg"), val=sel=>{ const el=box.querySelector(sel); return el?el.value:""; };
+  const say=(t,ok)=>{ if(msg){ msg.textContent=t; msg.style.color=ok?"var(--accent)":"var(--burn)"; } else toast(t); };
+  if(a==="signout"){ try{ await cloud.api.signOut(); }catch(e){} cloudForget(); save(); renderAccount(); render(); toast("Signed out — your data stays on this device"); return; }
+  if(a==="sync"){ if(!cloud.pulled) cloudPull(true); else { cloud.busy=true; renderAccount(); await cloudScan(); cloud.busy=false; cloudPull(true); } return; }
+  const api=await cloudInit(); if(!api){ say(cloud.err||"Accounts aren't available right now."); return; }
+  const email=val(".acEmail").trim(), pass=val(".acPass");
+  if(!email){ say("Enter your email address."); return; }
+  const btns=box.querySelectorAll("[data-acct]"); btns.forEach(b=>b.disabled=true);
+  try{
+    if(a==="reset"){ await api.reset(email); say("Password reset email sent — check your inbox.", true); return; }
+    if(!pass){ say("Enter a password."); return; }
+    say(a==="signup"?"Creating your account…":"Signing in…", true);
+    if(a==="signup") await api.signUp(email,pass); else await api.signIn(email,pass);
+    say(a==="signup"?"Account created — backing up your log.":"Signed in — syncing…", true);
+  }catch(e){ say(cloudErr(e)); }
+  finally{ btns.forEach(b=>b.disabled=false); }
+}
+function acctForm(){
+  return `<div data-acctbox><div class="settings"><div class="f"><label>Email</label><input type="email" class="acEmail" autocomplete="email" inputmode="email"></div>
+    <div class="f"><label>Password (6+ characters)</label><input type="password" class="acPass" autocomplete="current-password"></div></div>
+    <div class="btns" style="margin-top:10px;align-items:center"><button class="btn" data-acct="signup">Create account</button><button class="btn ghost" data-acct="signin">Sign in</button><button class="link" data-acct="reset" style="font-size:13px">Forgot password?</button></div>
+    <p class="muted acMsg" style="font-size:13px;margin:8px 0 0"></p></div>`;
+}
+function acctStatus(){
+  const u=cloud.user; if(!cloudOn()) return "Not available in this copy"; if(!u) return "Not signed in — back up and sync your log";
+  return `${u.email} · ${cloud.busy?"syncing…":cloud.err?"sync failed":state.sync&&state.sync.at?"synced "+new Date(state.sync.at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"not synced yet"}`;
+}
+function renderAccount(){
+  const u=cloud.user, box=$("#acctCard"); if(!box) return;
+  $("#ssum-account").textContent = acctStatus();
+  if(!cloudOn()) box.innerHTML = `<h2>Account &amp; sync</h2><p class="muted" style="margin-top:0;font-size:14px">Accounts aren't switched on in this copy of Daily Fuel, so your log stays on this device — use <b>Backup &amp; data</b> to move it. Whoever hosts the app can enable accounts by adding a free Firebase project to <code>firebase-config.js</code> (see the README).</p>`;
+  else if(!u) box.innerHTML = `<h2>Account &amp; sync</h2><p class="muted" style="margin-top:0;font-size:14px">A free account backs up your log and keeps your phone and computer in sync. Sign in on any device to pick up where you left off; everything you've logged here is uploaded when you create the account.</p>${acctForm()}${cloud.err?`<p class="over" style="font-size:13px;margin:8px 0 0">${esc(cloud.err)}</p>`:""}`;
+  else box.innerHTML = `<h2>Account &amp; sync <span class="pill">${cloud.busy?"syncing…":cloud.err?"error":"on"}</span></h2>
+    <p style="margin-top:0;font-size:14px">Signed in as <b>${esc(u.email)}</b></p>
+    <p class="muted" style="font-size:13px">${cloud.err?"Last sync failed: "+esc(cloud.err):state.sync&&state.sync.at?"Last sync "+new Date(state.sync.at).toLocaleString([],{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"}):"Not synced yet"}. Changes upload a few seconds after you make them and download when the app opens; if two devices change the same day, the later change wins.</p>
+    <div class="btns"><button class="btn" data-acct="sync">Sync now</button><button class="btn ghost" data-acct="signout">Sign out</button></div>`;
+  if($("#setupModal").classList.contains("open") && wiz.step===4) wizRender();
+}
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && cloud.user && cloud.pulled && Date.now()-((state.sync&&state.sync.at)||0) > 5*60e3) cloudPull(false); });
+if(cloudOn()) cloudInit();
+
 (function(){
   const q=new URLSearchParams(location.search); if(!q.has("steps")&&!q.has("weight")&&!q.has("water")) return;
   const k=/^\d{4}-\d{2}-\d{2}$/.test(q.get("date")||"")?q.get("date"):todayKey(), msgs=[];

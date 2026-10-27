@@ -95,8 +95,8 @@ previous tab, and only exits the app from the Today tab with nothing open. The "
 back button is routed to this by `@capacitor/app`; iOS has no back button, so the links do the job.
 
 ## Settings layout
-Settings is a list of sections, each with a one-line summary of what it's set to: Profile &
-goal, Nutrition targets, Water & activity, Meals & weekend, Reminders, Health sync (phone apps
+Settings is a list of sections, each with a one-line summary of what it's set to: Account & sync,
+Profile & goal, Nutrition targets, Water & activity, Meals & weekend, Reminders, Health sync (phone apps
 only), Display & search, Saved meals & foods, Backup & data, and App & about (install, version,
 privacy policy). On a phone tapping a row opens that section with a "‹ Settings" link back; on
 a wide screen the list stays on the left and the section opens beside it. On/off options are
@@ -104,9 +104,48 @@ switches. The version shown under App & about is `APP_VERSION` in `index.html`; 
 with `VERSION` in `sw.js`.
 
 ## First run, meals and the weekend
-The first time the app opens it asks three things — your goal, your body details and pace — and
-shows the plan: daily calorie target, protein/carbs/fat in grams and the date you'd reach your
-goal weight at that pace. Everything it sets can be changed later in Settings.
+The first time the app opens it walks through five screens: a welcome page, your goal and diet,
+your body details and pace, the plan (daily calorie target, protein/carbs/fat in grams and the
+date you'd reach your goal weight at that pace), and "Finishing touches" — optional switches for
+reminders, Health sync (phone app only) and an account. Everything it sets can be changed later
+in Settings; Skip closes it and it won't come back.
+
+## Accounts and sync
+Settings → **Account & sync** (and the last onboarding screen) lets you create a free account with
+an email address and password. Signing in uploads everything on the device, then keeps devices in
+step: changes upload a few seconds after you make them and download when the app opens or comes
+back to the foreground (at most every five minutes), and "Sync now" forces both. Each day is kept
+as one record with a change stamp, so if two devices edit the same day the later edit wins; a day
+that was never synced from a device is merged entry by entry instead. Settings and the meal setup
+follow whichever device saved them last; saved foods, meals, recipes, weights and measurements are
+combined (deleting one on a device doesn't remove it from the other). Signing out leaves the data
+on the device; "Erase all data" signs out first and keeps the copy in the account.
+
+Accounts run on Firebase (free Spark plan is plenty) and are off until the config is filled in:
+
+1. Go to https://console.firebase.google.com, **Add project** (any name, Analytics off).
+2. **Build → Authentication → Get started → Email/Password → Enable** (leave "Email link" off).
+3. **Build → Firestore Database → Create database** → production mode, pick a region near you.
+4. In Firestore → **Rules**, replace the rules with the block below and Publish:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{uid}/{document=**} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+     }
+   }
+   ```
+5. **Project settings (gear) → Your apps → Web (</>)** → register the app (no hosting) and copy the
+   `firebaseConfig` object into `firebase-config.js` as `window.FIREBASE_CONFIG = { ... }`.
+6. **Authentication → Settings → Authorized domains**: add `thaidinhhh-jpg.github.io` (localhost is
+   already there). Push the change; the phone app picks it up on the next `npm run android`.
+
+Password-reset emails are sent by Firebase from `noreply@<project>.firebaseapp.com`. The config
+values are not secrets — the rules above are what keep each user's data private. To try the flow
+without a Firebase project, run `localStorage.setItem("dailyFuel.v1.cloudMock","1")` in the
+browser console and reload: a fake server in localStorage stands in for Firebase.
 
 Settings → **Meals & weekend**: rename the meals (Brekkie, Tea…), reorder them, and share your
 calorie goal between them in percent — each meal on the Today tab then shows "eaten / budget"
