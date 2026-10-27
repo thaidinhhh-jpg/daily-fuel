@@ -85,6 +85,15 @@ it to **Favourites**; a **Recipe of the day** is picked from the recipes matchin
 **Cook mode** (button under a recipe's steps) shows one step at a time in large type and keeps
 the screen awake.
 
+## Back button
+Every page you move to — a tab, a settings section, a recipe filter or search, an open sheet
+such as a food or recipe — is a browser history entry, so the phone's back button or back
+gesture (and the browser's back button on the web) steps back through the app instead of
+closing it: back closes the open sheet first, then leaves the section, then returns to the
+previous tab, and only exits the app from the Today tab with nothing open. The "‹ Settings" and
+"‹ Browse" links pop the same history rather than adding to it. In the Android app the native
+back button is routed to this by `@capacitor/app`; iOS has no back button, so the links do the job.
+
 ## Settings layout
 Settings is a list of sections, each with a one-line summary of what it's set to: Profile &
 goal, Nutrition targets, Water & activity, Meals & weekend, Reminders, Health sync (phone apps

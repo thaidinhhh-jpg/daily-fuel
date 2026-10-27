@@ -901,7 +901,7 @@ h2 .btns{display:inline-flex}
 (function(){
 "use strict";
 const KEY = "dailyFuel.v1";
-const APP_VERSION = "v20";   // keep in step with VERSION in sw.js
+const APP_VERSION = "v21";   // keep in step with VERSION in sw.js
 const MEALS = ["Breakfast","Lunch","Dinner","Snacks"];
 
 // per-serving: name, kcal, protein, carbs, fat
@@ -2485,6 +2485,46 @@ else { LN.checkPermissions().then(p=>{ state.remNative=p.display; remSchedule();
   setTimeout(()=>toast(`Logged from automation: ${msgs.join(", ")}${k!==todayKey()?" ("+k+")":""}`), 300);
 })();
 applyTheme(); render();
+
+// ---------- in-app back navigation ----------
+// Every "page" the user can be on (tab, settings section, recipe filters, open sheet) becomes a browser
+// history entry, so the phone's back button / gesture and the browser's back button step back through
+// the app instead of leaving it. On Android the native button is routed here via @capacitor/app.
+const navStack=[]; let navPos=0, navApplying=false, navSkip=0;
+const curTab = () => { const b=$("#tabs button.on"); return b ? b.dataset.tab : "today"; };
+const topModal = () => { const m=$$(".modal.open").filter(m=>m.id!=="setupModal"); return m.length ? m[m.length-1].id : ""; };
+const navView = () => ({tab:curTab(), sset, cat:rcat, diet:rdiet, kcal:rkcal, group:rgroup, q:!!$("#recipeSearch").value, modal:topModal()});
+const navKey = v => JSON.stringify(v);
+function navCheck(){
+  if(navApplying) return;
+  const v=navView(), k=navKey(v);
+  if(navKey(navStack[navPos])===k) return;                       // nothing changed
+  if(navPos>0 && navKey(navStack[navPos-1])===k){ navPos--; navSkip++; history.back(); return; }   // a "‹ back" link: pop instead of push
+  navStack.length=navPos+1; navStack.push(v); navPos++;
+  history.pushState({nav:1,d:navPos},"");
+}
+function navApply(v){
+  navApplying=true;
+  try{
+    $$(".modal.open").forEach(m=>{ if(m.id!==v.modal && m.id!=="setupModal") closeModal(m); });
+    if(v.tab!==curTab()){ $$("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===v.tab)); ["today","history","recipes","plan","settings"].forEach(n=>$("#tab-"+n).classList.toggle("hidden",n!==v.tab)); }
+    sset=v.sset||""; rcat=v.cat||""; rdiet=v.diet||""; rkcal=v.kcal||""; rgroup=v.group||""; if(!v.q) $("#recipeSearch").value=""; rpage=PAGE;
+    render(); scrollTo(0,0);
+  } finally { navApplying=false; }
+}
+addEventListener("popstate", e=>{
+  if(navSkip>0){ navSkip--; return; }
+  const d=(e.state && e.state.nav) ? e.state.d : 0, v=navStack[d];
+  if(!v){ navPos=0; return; }
+  navPos=d; navApply(v);
+});
+navStack.push(navView()); history.replaceState({nav:1,d:0},"");
+document.addEventListener("click", ()=>queueMicrotask(navCheck));
+$("#recipeSearch").addEventListener("input", navCheck);
+new MutationObserver(navCheck).observe(document.body, {attributes:true, attributeFilter:["class"], subtree:true});
+if(NATIVE && window.Capacitor.Plugins.App){
+  window.Capacitor.Plugins.App.addListener("backButton", ()=>{ if(navPos>0) history.back(); else window.Capacitor.Plugins.App.exitApp(); });
+}
 })();
 </script>
 </body>
