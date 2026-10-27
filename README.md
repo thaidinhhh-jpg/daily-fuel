@@ -85,18 +85,28 @@ it to **Favourites**; a **Recipe of the day** is picked from the recipes matchin
 **Cook mode** (button under a recipe's steps) shows one step at a time in large type and keeps
 the screen awake.
 
+## Settings layout
+Settings is a list of sections, each with a one-line summary of what it's set to: Profile &
+goal, Nutrition targets, Water & activity, Meals & weekend, Reminders, Health sync (phone apps
+only), Display & search, Saved meals & foods, Backup & data, and App & about (install, version,
+privacy policy). On a phone tapping a row opens that section with a "‹ Settings" link back; on
+a wide screen the list stays on the left and the section opens beside it. On/off options are
+switches. The version shown under App & about is `APP_VERSION` in `index.html`; bump it together
+with `VERSION` in `sw.js`.
+
 ## First run, meals and the weekend
 The first time the app opens it asks three things — your goal, your body details and pace — and
 shows the plan: daily calorie target, protein/carbs/fat in grams and the date you'd reach your
 goal weight at that pace. Everything it sets can be changed later in Settings.
 
-Settings → **Meals & diary**: rename the meals (Brekkie, Tea…), reorder them, and share your
+Settings → **Meals & weekend**: rename the meals (Brekkie, Tea…), reorder them, and share your
 calorie goal between them in percent — each meal on the Today tab then shows "eaten / budget"
 (default 30/40/25/5 like most trackers). **Eat a bit more on…** lets the weekend (Sat–Sun,
 Fri–Sun or Fri–Sat) have extra calories and the other days a little less, so the week still adds
-up to seven times your goal. Also here: a diet preference that pre-selects the recipe filter, the
-glass size for the water button, whether exercise counts toward "burned", the starting weight for
-the progress bar, and show/hide for the water, fasting, steps and notes cards.
+up to seven times your goal, and a diet preference pre-selects the recipe filter. The glass size
+for the water button and whether steps and exercise count toward "burned" are under **Water &
+activity**; the starting weight for the progress bar under **Profile & goal**; show/hide for the
+water, fasting, steps and notes cards under **Display & search**.
 
 ## Reminders
 Settings → **Reminders**: meal reminders at the times you set (skipped once that meal has food
@@ -150,7 +160,7 @@ way as the built-in recipes (USDA values, raw weights). Your recipes show up und
 any other. Edit or delete them from their card; they're included in backups.
 
 ## Adaptive calorie goal
-Settings → Calorie goal shows an **Adaptive estimate** once you have 10+ logged days and
+Settings → Profile & goal shows an **Adaptive estimate** once you have 10+ logged days and
 4+ weigh-ins over 10+ days in the last three weeks. It takes your average net intake
 (food minus burned) and the slope of your trend weight, works out what you were actually
 maintaining on (7,700 kcal per kg), then applies your chosen pace. It's a better guide

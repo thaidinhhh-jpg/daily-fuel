@@ -284,6 +284,34 @@ h2 .btns{display:inline-flex}
 .wiz .plan .big{font-size:34px;font-weight:700;color:var(--accent)}
 .wiz .prog{height:4px;background:var(--line);border-radius:99px;margin:0 0 14px;overflow:hidden}
 .wiz .prog i{display:block;height:100%;background:var(--accent)}
+/* settings: section list + one panel */
+.sx{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
+.slist{padding:4px 8px}
+.srow{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:11px 6px;cursor:pointer;color:inherit;font:inherit;border-radius:10px}
+.srow:last-child{border-bottom:0}
+.srow:hover{background:var(--bg)}
+.srow.on{background:var(--accent-soft)}
+.srow .ico{width:36px;height:36px;border-radius:10px;background:var(--bg);display:grid;place-items:center;font-size:18px;flex:none}
+.srow.on .ico{background:var(--card)}
+.srow>span:nth-child(2){min-width:0;flex:1}
+.srow .st{display:block;font-weight:600;font-size:14px}
+.srow .ss{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .chev{color:var(--muted);font-size:20px;flex:none}
+.spanel{display:flex;flex-direction:column;gap:14px}
+.sback{display:inline-block;margin:0 0 10px;font-size:14px}
+@media (min-width:900px){.sx{grid-template-columns:300px 1fr}.slist{position:sticky;top:14px}.sback{display:none}.srow .chev{display:none}}
+.trow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer}
+.trow:last-child{border-bottom:0}
+.trow small{display:block;color:var(--muted);font-size:12px}
+.trow>span:first-child{min-width:0}
+.sub{margin:4px 0 10px}
+.sw{position:relative;display:inline-block;width:42px;height:24px;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw i{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:background .15s}
+.sw i:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw input:checked+i{background:var(--accent)}
+.sw input:checked+i:before{transform:translateX(18px)}
+.sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -485,131 +513,213 @@ h2 .btns{display:inline-flex}
   </section>
 
   <section id="tab-settings" class="hidden">
-    <div class="grid">
-      <div class="card span6">
-        <h2>Body</h2>
-        <div class="settings">
-          <div class="f"><label>Sex (for BMR formula)</label>
-            <select data-set="sex"><option value="1">Male</option><option value="0">Female</option></select></div>
-          <div class="f"><label>Age</label><input type="number" data-set="age" min="10" max="110"></div>
-          <div class="f"><label>Height (cm)</label><input type="number" data-set="heightCm" step="0.5"></div>
-          <div class="f"><label>Weight (kg) — until you log one</label><input type="number" data-set="weightKg" step="0.1"></div>
-          <div class="f"><label>Goal weight (kg, optional)</label><input type="number" data-set="goalWeight" step="0.1"></div>
-          <div class="f"><label>Activity level</label>
-            <select data-set="activity">
-              <option value="1.2">Sedentary — desk job, little exercise</option>
-              <option value="1.375">Light — exercise 1–3 days/week</option>
-              <option value="1.55">Moderate — exercise 3–5 days/week</option>
-              <option value="1.725">Very active — 6–7 days/week</option>
-              <option value="1.9">Athlete — hard training or physical job</option>
-            </select></div>
-        </div>
-        <div class="kv" id="bodyStats"></div>
+    <div class="sx">
+      <div class="slist card" id="slist">
+        <button class="srow" data-sopen="profile"><span class="ico">🧍</span><span><span class="st">Profile &amp; goal</span><span class="ss" id="ssum-profile"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="nutrition"><span class="ico">🥗</span><span><span class="st">Nutrition targets</span><span class="ss" id="ssum-nutrition"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="activity"><span class="ico">💧</span><span><span class="st">Water &amp; activity</span><span class="ss" id="ssum-activity"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="meals"><span class="ico">🍽️</span><span><span class="st">Meals &amp; weekend</span><span class="ss" id="ssum-meals"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="reminders"><span class="ico">🔔</span><span><span class="st">Reminders</span><span class="ss" id="ssum-reminders"></span></span><span class="chev">›</span></button>
+        <button class="srow hidden" data-sopen="health" id="srow-health"><span class="ico">❤️</span><span><span class="st">Health sync</span><span class="ss" id="ssum-health"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="display"><span class="ico">🎨</span><span><span class="st">Display &amp; search</span><span class="ss" id="ssum-display"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="saved"><span class="ico">⭐</span><span><span class="st">Saved meals &amp; foods</span><span class="ss" id="ssum-saved"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="backup"><span class="ico">💾</span><span><span class="st">Backup &amp; data</span><span class="ss" id="ssum-backup"></span></span><span class="chev">›</span></button>
+        <button class="srow" data-sopen="app"><span class="ico">📱</span><span><span class="st">App &amp; about</span><span class="ss" id="ssum-app"></span></span><span class="chev">›</span></button>
       </div>
-      <div class="card span6">
-        <h2>Calorie goal</h2>
-        <div class="f"><label>Goal pace</label>
-          <select data-set="rate" data-neg="1">
-            <option value="-0.75">Lose 0.75 kg / week</option>
-            <option value="-0.5">Lose 0.5 kg / week</option>
-            <option value="-0.25">Lose 0.25 kg / week</option>
-            <option value="0">Maintain weight</option>
-            <option value="0.25">Gain 0.25 kg / week</option>
-            <option value="0.5">Gain 0.5 kg / week</option>
-          </select></div>
-        <div class="suggest"><div><span class="muted" style="font-size:12px">Suggested daily goal</span><br><b id="suggestKcal">—</b></div><button class="btn" id="applySuggest">Use this</button></div>
-        <div class="settings">
-          <div class="f"><label>Calorie goal (kcal)</label><input type="number" data-set="calGoal"></div>
-          <div class="f"><label>Steps count toward burned?</label>
-            <select data-set="countSteps"><option value="1">Yes — add step calories</option><option value="0">No — exercise only</option></select></div>
-          <div class="f"><label>Water goal (ml)</label><input type="number" data-set="waterGoal"></div>
-          <div class="f"><label>Steps goal</label><input type="number" data-set="stepGoal"></div>
-          <div class="f"><label>Fibre goal (g) — 25–30 g is typical</label><input type="number" data-set="fibreGoal"></div>
-          <div class="f"><label>Sodium limit (mg) — 2,000 mg is the suggested max</label><input type="number" data-set="sodiumLimit"></div>
+      <div id="spanels">
+        <button class="link sback" data-sback>‹ Settings</button>
+
+        <div class="spanel hidden" data-spanel="profile">
+          <div class="card">
+            <h2>Your body</h2>
+            <div class="settings">
+              <div class="f"><label>Sex (for the BMR formula)</label>
+                <select data-set="sex"><option value="1">Male</option><option value="0">Female</option></select></div>
+              <div class="f"><label>Age</label><input type="number" data-set="age" min="10" max="110"></div>
+              <div class="f"><label>Height (cm)</label><input type="number" data-set="heightCm" step="0.5"></div>
+              <div class="f"><label>Weight (kg) — used until you log one</label><input type="number" data-set="weightKg" step="0.1"></div>
+              <div class="f"><label>Activity level</label>
+                <select data-set="activity">
+                  <option value="1.2">Sedentary — desk job, little exercise</option>
+                  <option value="1.375">Light — exercise 1–3 days/week</option>
+                  <option value="1.55">Moderate — exercise 3–5 days/week</option>
+                  <option value="1.725">Very active — 6–7 days/week</option>
+                  <option value="1.9">Athlete — hard training or physical job</option>
+                </select></div>
+            </div>
+            <div class="kv" id="bodyStats"></div>
+          </div>
+          <div class="card">
+            <h2>Goal</h2>
+            <div class="settings">
+              <div class="f"><label>Goal weight (kg, optional)</label><input type="number" data-set="goalWeight" step="0.1"></div>
+              <div class="f"><label>Goal pace</label>
+                <select data-set="rate" data-neg="1">
+                  <option value="-0.75">Lose 0.75 kg / week</option>
+                  <option value="-0.5">Lose 0.5 kg / week</option>
+                  <option value="-0.25">Lose 0.25 kg / week</option>
+                  <option value="0">Maintain weight</option>
+                  <option value="0.25">Gain 0.25 kg / week</option>
+                  <option value="0.5">Gain 0.5 kg / week</option>
+                </select></div>
+              <div class="f"><label>Starting weight for the progress bar (kg, blank = first weigh-in)</label><input type="number" data-set="startWeight" step="0.1"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Calorie goal</h2>
+            <div class="f" style="margin-bottom:12px"><label>Daily calorie goal (kcal)</label><input type="number" data-set="calGoal"></div>
+            <div class="suggest"><div><span class="muted" style="font-size:12px">Suggested from your body details</span><br><b id="suggestKcal">—</b></div><button class="btn" id="applySuggest">Use this</button></div>
+            <p class="muted" style="font-size:12px;margin:0 0 12px" id="suggestNote"></p>
+            <div class="suggest"><div><span class="muted" style="font-size:12px">Adaptive estimate from your log</span><br><b id="adaptiveKcal">—</b></div><button class="btn ghost" id="applyAdaptive">Use this</button></div>
+            <p class="muted" style="font-size:12px;margin:0" id="adaptiveNote"></p>
+          </div>
         </div>
-        <p class="muted" style="font-size:12px;margin:10px 0 0" id="suggestNote"></p>
-        <div class="suggest" style="margin-top:12px"><div><span class="muted" style="font-size:12px">Adaptive estimate from your log</span><br><b id="adaptiveKcal">—</b></div><button class="btn ghost" id="applyAdaptive">Use this</button></div>
-        <p class="muted" style="font-size:12px;margin:10px 0 0" id="adaptiveNote"></p>
-      </div>
-      <div class="card span12">
-        <h2>Macros <span class="pill" id="macroSum"></span></h2>
-        <div class="btns" id="macroPresets"></div>
-        <div class="settings" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
-          <div class="f"><label>Protein % of calories</label><input type="number" data-set="macroP" min="0" max="100"></div>
-          <div class="f"><label>Carbs %</label><input type="number" data-set="macroC" min="0" max="100"></div>
-          <div class="f"><label>Fat %</label><input type="number" data-set="macroF" min="0" max="100"></div>
+
+        <div class="spanel hidden" data-spanel="nutrition">
+          <div class="card">
+            <h2>Macros <span class="pill" id="macroSum"></span></h2>
+            <div class="btns" id="macroPresets"></div>
+            <div class="settings" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
+              <div class="f"><label>Protein % of calories</label><input type="number" data-set="macroP" min="0" max="100"></div>
+              <div class="f"><label>Carbs %</label><input type="number" data-set="macroC" min="0" max="100"></div>
+              <div class="f"><label>Fat %</label><input type="number" data-set="macroF" min="0" max="100"></div>
+            </div>
+            <div class="kv" id="macroStats" style="grid-template-columns:repeat(3,1fr)"></div>
+          </div>
+          <div class="card">
+            <h2>Other targets</h2>
+            <div class="settings">
+              <div class="f"><label>Fibre goal (g) — 25–30 g is typical</label><input type="number" data-set="fibreGoal"></div>
+              <div class="f"><label>Sodium limit (mg) — 2,000 mg is the suggested max</label><input type="number" data-set="sodiumLimit"></div>
+            </div>
+          </div>
         </div>
-        <div class="kv" id="macroStats" style="grid-template-columns:repeat(3,1fr)"></div>
-      </div>
-      <div class="card span6">
-        <h2>Meals &amp; diary <span class="pill" id="mealPctSum"></span></h2>
-        <p class="muted" style="margin-top:0;font-size:13px">Rename or reorder the meals and share your calorie goal between them — each meal then shows its own budget.</p>
-        <div id="mealSettings"></div>
-        <div class="settings" style="margin-top:12px">
-          <div class="f"><label>Eat a bit more on…</label>
-            <select data-sets="weekendDays"><option value="">No — same goal every day</option><option value="67">Saturdays and Sundays</option><option value="567">Fridays, Saturdays and Sundays</option><option value="56">Fridays and Saturdays</option></select></div>
-          <div class="f"><label>Extra on those days (kcal)</label><input type="number" data-set="weekendExtra" min="0" step="50"></div>
-          <div class="f"><label>Diet preference (pre-selects the recipe filter)</label>
-            <select data-sets="diet"><option value="">Classic — everything</option><option value="Vegetarian">Vegetarian</option><option value="Vegan">Vegan</option><option value="Pescatarian">Pescatarian</option></select></div>
-          <div class="f"><label>Glass size for the water button (ml)</label><input type="number" data-set="glassMl" min="50" step="50"></div>
-          <div class="f"><label>Exercise counts toward burned?</label><select data-set="countEx"><option value="1">Yes</option><option value="0">No — goal only</option></select></div>
-          <div class="f"><label>Starting weight for the progress bar (kg, blank = first weigh-in)</label><input type="number" data-set="startWeight" step="0.1"></div>
-          <div class="f"><label>Show water card</label><select data-set="showWater"><option value="1">Yes</option><option value="0">No</option></select></div>
-          <div class="f"><label>Show fasting card</label><select data-set="showFast"><option value="1">Yes</option><option value="0">No</option></select></div>
-          <div class="f"><label>Show steps card</label><select data-set="showSteps"><option value="1">Yes</option><option value="0">No</option></select></div>
-          <div class="f"><label>Show notes &amp; mood</label><select data-set="showNotes"><option value="1">Yes</option><option value="0">No</option></select></div>
+
+        <div class="spanel hidden" data-spanel="activity">
+          <div class="card">
+            <h2>Water</h2>
+            <div class="settings">
+              <div class="f"><label>Water goal (ml)</label><input type="number" data-set="waterGoal"></div>
+              <div class="f"><label>Glass size for the water button (ml)</label><input type="number" data-set="glassMl" min="50" step="50"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Steps &amp; exercise</h2>
+            <div class="f" style="margin-bottom:6px"><label>Steps goal</label><input type="number" data-set="stepGoal"></div>
+            <label class="trow"><span>Steps count toward “burned”<small>Off: only logged exercise is added to your goal</small></span><span class="sw"><input type="checkbox" data-set="countSteps"><i></i></span></label>
+            <label class="trow"><span>Exercise counts toward “burned”<small>Off: exercise is logged but doesn't raise the day's budget</small></span><span class="sw"><input type="checkbox" data-set="countEx"><i></i></span></label>
+          </div>
         </div>
-        <p class="muted" style="font-size:12px;margin:10px 0 0" id="weekendNote"></p>
-      </div>
-      <div class="card span6">
-        <h2>Reminders <span class="pill" id="remState"></span></h2>
-        <p class="muted" style="margin-top:0;font-size:13px" id="remNote"></p>
-        <div class="btns" style="margin-bottom:12px"><button class="btn" id="remAllow">Allow notifications</button><button class="btn ghost" id="remTest">Send a test</button></div>
-        <div class="settings">
-          <div class="f"><label>Meal reminders (skipped once the meal is logged)</label><select data-set="remMeals"><option value="0">Off</option><option value="1">On</option></select></div>
-          <div class="f tgrid4" id="mealTimes"></div>
-          <div class="f"><label>Water reminder (while you're under your goal)</label><select data-set="remWater"><option value="0">Off</option><option value="1">On</option></select></div>
-          <div class="f tgrid3">
-            <div><label>Every (h)</label><input type="number" data-set="remWaterEvery" min="1" max="6"></div>
-            <div><label>From</label><input type="time" data-sets="remWaterFrom"></div>
-            <div><label>Until</label><input type="time" data-sets="remWaterTo"></div></div>
-          <div class="f"><label>Weigh-in reminder</label><select data-set="remWeigh"><option value="0">Off</option><option value="1">Every day</option><option value="7">Mondays</option></select></div>
-          <div class="f"><label>Weigh-in time</label><input type="time" data-sets="remWeighAt"></div>
-          <div class="f"><label>Tell me when a fast is complete</label><select data-set="remFast"><option value="1">Yes</option><option value="0">No</option></select></div>
+
+        <div class="spanel hidden" data-spanel="meals">
+          <div class="card">
+            <h2>Meals <span class="pill" id="mealPctSum"></span></h2>
+            <p class="muted" style="margin-top:0;font-size:13px">Rename or reorder the meals and share your calorie goal between them — each meal then shows its own budget on the Today tab.</p>
+            <div id="mealSettings"></div>
+          </div>
+          <div class="card">
+            <h2>Weekend &amp; diet</h2>
+            <div class="settings">
+              <div class="f"><label>Eat a bit more on…</label>
+                <select data-sets="weekendDays"><option value="">No — same goal every day</option><option value="67">Saturdays and Sundays</option><option value="567">Fridays, Saturdays and Sundays</option><option value="56">Fridays and Saturdays</option></select></div>
+              <div class="f"><label>Extra on those days (kcal)</label><input type="number" data-set="weekendExtra" min="0" step="50"></div>
+              <div class="f"><label>Diet preference (pre-selects the recipe filter)</label>
+                <select data-sets="diet"><option value="">Classic — everything</option><option value="Vegetarian">Vegetarian</option><option value="Vegan">Vegan</option><option value="Pescatarian">Pescatarian</option></select></div>
+            </div>
+            <p class="muted" style="font-size:12px;margin:10px 0 0" id="weekendNote"></p>
+          </div>
         </div>
-      </div>
-      <div class="card span6">
-        <h2>My saved meals</h2>
-        <div id="myCombos"></div>
-        <h2 style="margin-top:18px">My saved foods</h2>
-        <div id="myFoods"></div>
-      </div>
-      <div class="card span6">
-        <h2>Backup</h2>
-        <p class="muted" style="margin-top:0;font-size:14px">Your data is saved in this browser only — clearing site data or losing the phone loses it. Export a backup every week or two, and to move to another device.</p>
-        <p style="font-size:14px;margin:0 0 10px" id="backupInfo"></p>
-        <div class="btns">
-          <button class="btn" id="exportBtn">Export backup</button>
-          <button class="btn ghost hidden" id="shareBtn">Share backup…</button>
-          <button class="btn ghost" id="importBtn">Import backup</button>
-          <button class="btn ghost" id="csvBtn">Export CSV</button>
-          <button class="btn ghost hidden" id="undoImport">Undo last import</button>
-          <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+
+        <div class="spanel hidden" data-spanel="reminders">
+          <div class="card">
+            <h2>Reminders <span class="pill" id="remState"></span></h2>
+            <p class="muted" style="margin-top:0;font-size:13px" id="remNote"></p>
+            <div class="btns" style="margin-bottom:6px"><button class="btn" id="remAllow">Allow notifications</button><button class="btn ghost" id="remTest">Send a test</button></div>
+            <label class="trow"><span>Meal reminders<small>Skipped once that meal has food logged</small></span><span class="sw"><input type="checkbox" data-set="remMeals"><i></i></span></label>
+            <div class="tgrid4 sub" id="mealTimes"></div>
+            <label class="trow"><span>Water reminder<small>Only while you're under your water goal</small></span><span class="sw"><input type="checkbox" data-set="remWater"><i></i></span></label>
+            <div class="tgrid3 sub">
+              <div><label>Every (h)</label><input type="number" data-set="remWaterEvery" min="1" max="6"></div>
+              <div><label>From</label><input type="time" data-sets="remWaterFrom"></div>
+              <div><label>Until</label><input type="time" data-sets="remWaterTo"></div></div>
+            <div class="trow"><span>Weigh-in reminder</span><select data-set="remWeigh" style="width:auto"><option value="0">Off</option><option value="1">Every day</option><option value="7">Mondays</option></select></div>
+            <div class="trow"><span>Weigh-in time</span><input type="time" data-sets="remWeighAt" style="width:auto"></div>
+            <label class="trow"><span>Tell me when a fast is complete</span><span class="sw"><input type="checkbox" data-set="remFast"><i></i></span></label>
+          </div>
         </div>
-        <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
-        <h2>Install on your phone</h2>
-        <div id="healthCard" class="hidden" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line)">
-          <h2>Health sync <span class="pill" id="healthState"></span></h2>
-          <p class="muted" style="margin-top:0;font-size:14px" id="healthNote">Read steps and weight from Apple Health / Health Connect automatically, and write the weights you log here back to it.</p>
-          <div class="btns"><button class="btn" id="healthConnectBtn">Connect</button><button class="btn ghost hidden" id="healthSyncBtn">Sync now</button><button class="btn ghost hidden" id="healthOffBtn">Turn off</button></div>
+
+        <div class="spanel hidden" data-spanel="health">
+          <div class="card" id="healthCard">
+            <h2>Health sync <span class="pill" id="healthState"></span></h2>
+            <p class="muted" style="margin-top:0;font-size:14px" id="healthNote">Read steps and weight from Apple Health / Health Connect automatically, and write the weights you log here back to it.</p>
+            <div class="btns"><button class="btn" id="healthConnectBtn">Connect</button><button class="btn ghost hidden" id="healthSyncBtn">Sync now</button><button class="btn ghost hidden" id="healthOffBtn">Turn off</button></div>
+          </div>
         </div>
-        <p class="muted" style="margin-top:0;font-size:14px" id="installNote"></p>
-        <button class="btn hidden" id="installBtn" style="margin-bottom:14px">Install app</button>
-        <div class="f" style="margin-bottom:14px"><label>Fast food menus to show first</label>
-          <select id="ffRegion"><option value="">All regions equally</option><option value="AU">Australia</option><option value="EU">UK &amp; Europe</option><option value="US">United States</option></select></div>
-        <div class="f" style="margin-bottom:14px"><label>Theme</label>
-          <select id="theme"><option value="">Match system</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
-        <button class="btn danger" id="resetBtn">Erase all data</button>
+
+        <div class="spanel hidden" data-spanel="display">
+          <div class="card">
+            <h2>Appearance</h2>
+            <div class="settings">
+              <div class="f"><label>Theme</label>
+                <select id="theme"><option value="">Match system</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+              <div class="f"><label>Fast food menus to show first</label>
+                <select id="ffRegion"><option value="">All regions equally</option><option value="AU">Australia</option><option value="EU">UK &amp; Europe</option><option value="US">United States</option></select></div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Cards on the Today tab</h2>
+            <label class="trow"><span>Water</span><span class="sw"><input type="checkbox" data-set="showWater"><i></i></span></label>
+            <label class="trow"><span>Fasting</span><span class="sw"><input type="checkbox" data-set="showFast"><i></i></span></label>
+            <label class="trow"><span>Steps</span><span class="sw"><input type="checkbox" data-set="showSteps"><i></i></span></label>
+            <label class="trow"><span>Notes &amp; mood</span><span class="sw"><input type="checkbox" data-set="showNotes"><i></i></span></label>
+          </div>
+        </div>
+
+        <div class="spanel hidden" data-spanel="saved">
+          <div class="card">
+            <h2>My saved meals</h2>
+            <div id="myCombos"></div>
+          </div>
+          <div class="card">
+            <h2>My saved foods</h2>
+            <div id="myFoods"></div>
+          </div>
+        </div>
+
+        <div class="spanel hidden" data-spanel="backup">
+          <div class="card">
+            <h2>Backup</h2>
+            <p class="muted" style="margin-top:0;font-size:14px">Your data is saved on this device only — clearing site data or losing the phone loses it. Export a backup every week or two, and to move to another device.</p>
+            <p style="font-size:14px;margin:0 0 10px" id="backupInfo"></p>
+            <div class="btns">
+              <button class="btn" id="exportBtn">Export backup</button>
+              <button class="btn ghost hidden" id="shareBtn">Share backup…</button>
+              <button class="btn ghost" id="importBtn">Import backup</button>
+              <button class="btn ghost" id="csvBtn">Export CSV</button>
+              <button class="btn ghost hidden" id="undoImport">Undo last import</button>
+              <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+            </div>
+          </div>
+          <div class="card">
+            <h2>Start over</h2>
+            <p class="muted" style="margin-top:0;font-size:14px">Removes every logged day, weigh-in, saved food and setting from this device. Export a backup first if you might want it back.</p>
+            <button class="btn danger" id="resetBtn">Erase all data</button>
+          </div>
+        </div>
+
+        <div class="spanel hidden" data-spanel="app">
+          <div class="card">
+            <h2>Install on your phone</h2>
+            <p class="muted" style="margin-top:0;font-size:14px" id="installNote"></p>
+            <button class="btn hidden" id="installBtn">Install app</button>
+          </div>
+          <div class="card">
+            <h2>About</h2>
+            <p style="margin:0 0 6px;font-size:14px"><b>Daily Fuel</b> <span class="muted" id="appVersion"></span></p>
+            <p class="muted" style="margin:0;font-size:13px">Food values from USDA FoodData Central, chains' published nutrition and Open Food Facts. Everything you log stays on this device.
+              <a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="https://github.com/thaidinhhh-jpg/daily-fuel" target="_blank" rel="noopener">Source on GitHub</a></p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -791,6 +901,7 @@ h2 .btns{display:inline-flex}
 (function(){
 "use strict";
 const KEY = "dailyFuel.v1";
+const APP_VERSION = "v20";   // keep in step with VERSION in sw.js
 const MEALS = ["Breakfast","Lunch","Dinner","Snacks"];
 
 // per-serving: name, kcal, protein, carbs, fat
@@ -1300,9 +1411,11 @@ function renderWeightChart(){
 }
 
 // ---------- render: settings ----------
+let sset = "";   // open settings section ("" = list on phones, first section on wide screens)
+const SWIDE = matchMedia("(min-width:900px)");
 function renderSettings(){
   const s = state.settings;
-  $$("[data-set]").forEach(el=>{ if(document.activeElement!==el) el.value = s[el.dataset.set]; });
+  $$("[data-set]").forEach(el=>{ if(el.type==="checkbox") el.checked = !!+s[el.dataset.set]; else if(document.activeElement!==el) el.value = s[el.dataset.set]; });
   $$("[data-sets]").forEach(el=>{ if(document.activeElement!==el) el.value = s[el.dataset.sets]||""; });
   $("#theme").value = state.theme||"";
   // meals: name, share of the goal, order
@@ -1320,8 +1433,9 @@ function renderSettings(){
   $("#backupInfo").innerHTML = state.backupAt ? `Last backup: <b>${new Date(state.backupAt).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}</b>` : `<b>No backup yet.</b>`;
   $("#shareBtn").classList.toggle("hidden", !(navigator.canShare && window.File));
   $("#undoImport").classList.toggle("hidden", !localStorage.getItem(KEY+".prev"));
-  $("#healthCard").classList.toggle("hidden", !NATIVE);
+  $("#srow-health").classList.toggle("hidden", !NATIVE);
   if(NATIVE){ const h=state.health; $("#healthState").textContent = h&&h.on ? (h.err?"error":"on") : "off";
+    $("#ssum-health").textContent = h&&h.on ? (h.err ? "Last sync failed" : `On · last sync ${h.at?new Date(h.at).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}):"pending"}`) : "Off — tap to connect";
     $("#healthConnectBtn").classList.toggle("hidden", !!(h&&h.on)); $("#healthSyncBtn").classList.toggle("hidden", !(h&&h.on)); $("#healthOffBtn").classList.toggle("hidden", !(h&&h.on));
     $("#healthNote").textContent = h&&h.on ? (h.err ? "Last sync failed: "+h.err : `Steps and weight are read from ${/iP/.test(navigator.userAgent)?"Apple Health":"Health Connect"}; last sync ${h.at?new Date(h.at).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}):"pending"}. Syncs when the app opens, at most every 10 minutes.`) : "Read steps and weight from Apple Health / Health Connect automatically, and write the weights you log here back to it."; }
   const b = body();
@@ -1365,7 +1479,28 @@ function renderSettings(){
     : location.protocol==="file:" ? "To install it on your phone, the app needs to be opened from a web address (for example free GitHub Pages hosting) rather than a file. The camera barcode scanner needs that too."
     : "iPhone: tap Share → Add to Home Screen. Android: tap the ⋮ menu → Install app (or use the button below).";
   $("#installBtn").classList.toggle("hidden", !installEvt || standalone);
+  $("#appVersion").textContent = APP_VERSION + (NATIVE ? " · phone app" : standalone ? " · installed" : " · web");
+  // section list summaries
+  const paceTxt = s.rate===0 ? "maintain" : (s.rate<0?"lose ":"gain ")+Math.abs(s.rate)+" kg/wk";
+  $("#ssum-profile").textContent = `${fmt(s.calGoal)} kcal/day · ${paceTxt}${s.goalWeight?` · goal ${s.goalWeight} kg`:""}`;
+  $("#ssum-nutrition").textContent = `P ${s.macroP}% · C ${s.macroC}% · F ${s.macroF}% · fibre ${fmt(s.fibreGoal)} g · sodium ${fmt(s.sodiumLimit)} mg`;
+  $("#ssum-activity").textContent = `${fmt(s.waterGoal)} ml water · ${fmt(s.stepGoal)} steps${+s.countSteps?"":" · steps not counted"}`;
+  $("#ssum-meals").textContent = order.map(mealName).join(", ") + (wd && +s.weekendExtra ? ` · weekend +${fmt(s.weekendExtra)}` : "");
+  const remOn=[+s.remMeals&&"meals", +s.remWater&&"water", +s.remWeigh&&"weigh-in", +s.remFast&&"fast"].filter(Boolean);
+  $("#ssum-reminders").textContent = remPermission()==="denied" ? "Blocked in this browser" : remOn.length ? remOn.join(", ")+(remPermission()!=="granted"?" · tap Allow":"") : "Off";
+  const hidden=["Water","Fast","Steps","Notes"].filter(n=>!+s["show"+n]).length;
+  $("#ssum-display").textContent = `${state.theme ? state.theme[0].toUpperCase()+state.theme.slice(1) : "System"} theme · ${hidden ? hidden+" card"+(hidden>1?"s":"")+" hidden" : "all cards shown"}${s.ffRegion?` · ${s.ffRegion} menus first`:""}`;
+  $("#ssum-saved").textContent = `${state.combos.length} saved meal${state.combos.length===1?"":"s"} · ${state.myFoods.length} saved food${state.myFoods.length===1?"":"s"}`;
+  $("#ssum-backup").textContent = state.backupAt ? `Last backup ${new Date(state.backupAt).toLocaleDateString(undefined,{day:"numeric",month:"short"})}` : "No backup yet";
+  $("#ssum-app").textContent = NATIVE ? "Phone app · "+APP_VERSION : standalone ? "Installed · "+APP_VERSION : "Add to your home screen · "+APP_VERSION;
+  // which section is open
+  const wide=SWIDE.matches, cur = sset || (wide ? "profile" : "");
+  $$("[data-spanel]").forEach(p=>p.classList.toggle("hidden", p.dataset.spanel!==cur));
+  $$("[data-sopen]").forEach(r=>r.classList.toggle("on", wide && r.dataset.sopen===cur));
+  $("#slist").classList.toggle("hidden", !wide && !!cur);
+  $("#spanels").classList.toggle("hidden", !cur);
 }
+SWIDE.addEventListener("change", ()=>{ if(!$("#tab-settings").classList.contains("hidden")) renderSettings(); });
 
 function render(){ renderToday(); if(!$("#tab-history").classList.contains("hidden")) renderHistory(); if(!$("#tab-recipes").classList.contains("hidden")) renderRecipes(); if(!$("#tab-plan").classList.contains("hidden")) renderPlan(); if(!$("#tab-settings").classList.contains("hidden")) renderSettings(); }
 function applyTheme(){ if(state.theme) document.documentElement.dataset.theme=state.theme; else delete document.documentElement.dataset.theme; }
@@ -1978,6 +2113,8 @@ document.addEventListener("click", e=>{
     render(); return;
   }
   if(ds.gotab){ $(`[data-tab="${ds.gotab}"]`).click(); return; }
+  if(ds.sopen){ sset=ds.sopen; renderSettings(); if(!SWIDE.matches) $("#tab-settings").scrollIntoView({block:"start"}); return; }
+  if(ds.sback!==undefined){ sset=""; renderSettings(); return; }
   if(ds.fast){
     if(ds.fast==="start"){ const h=state.fastHours||16; state.fast={start:Date.now(),hours:h}; toast(`Fasting · goal ${h} h`); }
     else if(ds.fast==="end"){ const f=state.fast; state.fasts.push({start:f.start,end:Date.now(),hours:f.hours}); state.fasts=state.fasts.slice(-60); state.fast=null; toast(`Fast ended · ${hm(Date.now()-f.start)}`); }
@@ -2098,7 +2235,7 @@ $("#stepsSave").onclick=()=>{ const v=$("#stepsSet").value; if(v!==""){ day().st
 $("#waterCustom").onkeydown=e=>{ if(e.key==="Enter") $("#waterAdd").click(); };
 $("#stepsSet").onkeydown=e=>{ if(e.key==="Enter") $("#stepsSave").click(); };
 $("#histMetric").onchange=renderHistory;
-$$("[data-set]").forEach(el=>el.onchange=()=>{ const v=+el.value||0; state.settings[el.dataset.set]=el.dataset.neg?v:Math.max(0,v); save(); render(); toast("Saved"); if(/^rem/.test(el.dataset.set)) remSchedule(); });
+$$("[data-set]").forEach(el=>el.onchange=()=>{ const v=el.type==="checkbox" ? (el.checked?1:0) : (+el.value||0); state.settings[el.dataset.set]=el.dataset.neg?v:Math.max(0,v); save(); render(); toast("Saved"); if(/^rem/.test(el.dataset.set)) remSchedule(); });
 // text-valued settings (times, weekend days, diet); the meal time inputs are re-rendered so this is delegated
 document.addEventListener("change", e=>{
   const el=e.target; if(el.dataset.sets){ state.settings[el.dataset.sets]=el.value; save(); render(); toast("Saved"); if(/^(rem|t[A-Z])/.test(el.dataset.sets)) remSchedule(); return; }
