@@ -234,6 +234,31 @@ h2 .btns{display:inline-flex}
 .streak{white-space:nowrap}
 @media (max-width:460px){.datebar .d{min-width:0}}
 .pill{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--bg);color:var(--muted);text-transform:none;letter-spacing:0;font-weight:600}
+.tgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.tgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tgrid4 input,.tgrid3 input{min-width:0;width:100%;box-sizing:border-box}
+@media (max-width:560px){.tgrid4,.tgrid3{grid-template-columns:repeat(2,1fr)}}
+.mealrow{display:flex;gap:6px;align-items:center;padding:4px 0}
+.mealrow input:first-child{flex:1;min-width:0}
+.mealrow input[type=number]{width:58px}
+.mealrow .iconbtn{width:30px;height:30px;font-size:14px}
+.meal-h .over{color:var(--burn);font-weight:600}
+.rcard{position:relative}
+.fav{position:absolute;top:6px;right:8px;border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--line);padding:2px}
+.fav:hover{color:var(--muted)}
+.fav.on{color:#e0a21b}
+.rcard .rt{padding-right:22px}
+.rotd{display:flex;gap:12px;align-items:center;border:1px solid var(--accent);background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin-top:12px;cursor:pointer}
+.rotd .rimg{width:84px;height:84px}
+.rotd b{font-size:16px}
+.wiz{max-width:560px}
+.wiz .opts{display:grid;gap:8px;margin:12px 0}
+.wiz .opt{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);text-align:left;font:inherit;color:inherit;cursor:pointer}
+.wiz .opt.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.wiz .opt small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.wiz .plan{background:var(--accent-soft);border-radius:12px;padding:14px;text-align:center;margin:12px 0}
+.wiz .plan .big{font-size:34px;font-weight:700;color:var(--accent)}
+.wiz .prog{height:4px;background:var(--line);border-radius:99px;margin:0 0 14px;overflow:hidden}
+.wiz .prog i{display:block;height:100%;background:var(--accent)}
 </style>
 </head>
 <body>
@@ -285,7 +310,7 @@ h2 .btns{display:inline-flex}
       <div class="card span8">
         <h2>Meals <span class="btns" style="margin-left:auto"><button class="btn ghost" id="quickAddBtn">Quick add</button><button class="btn" id="addFoodBtn">+ Add food</button></span></h2>
         <div id="meals"></div>
-        <div style="margin-top:12px"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:3px">Notes for the day</label>
+        <div style="margin-top:12px" id="noteBlock"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:3px">Notes for the day</label>
           <textarea id="dayNote" rows="2" placeholder="How did today go? Hunger, sleep, how you felt…" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
           <div class="btns" id="moodRow" style="margin-top:8px"></div></div>
       </div>
@@ -296,22 +321,23 @@ h2 .btns{display:inline-flex}
           <div class="stat" id="weightStat">—</div>
           <div id="spark"></div>
           <p class="muted" style="font-size:13px;margin:4px 0 0" id="weightInfo"></p>
+          <div id="wprog"></div>
           <div class="inline"><input type="number" step="0.1" min="0" id="weightIn" placeholder="Log weight (kg)"><button class="btn ghost" id="weightSave">Log</button></div>
         </div>
-        <div class="card">
+        <div class="card" id="waterCard">
           <h2>Water <span id="waterPct"></span></h2>
           <div class="stat" id="waterStat">0 <small>/ 0 ml</small></div>
           <div class="bar" style="margin-top:8px"><i id="waterBar" style="background:var(--water);width:0"></i></div>
           <div class="glasses" id="glasses"></div>
           <div class="btns">
-            <button class="chip water" data-water="250">+ Glass 250</button>
+            <button class="chip water" id="glassBtn" data-water="250">+ Glass 250</button>
             <button class="chip water" data-water="500">+ Bottle 500</button>
             <button class="chip" id="waterUndo">Undo</button>
           </div>
           <div class="inline"><input type="number" id="waterCustom" placeholder="Custom ml" min="0"><button class="btn ghost" id="waterAdd">Add</button></div>
         </div>
 
-        <div class="card">
+        <div class="card" id="fastCard">
           <h2>Fasting <span class="pill" id="fastPlan"></span></h2>
           <div class="stat" id="fastStat">—</div>
           <div class="bar" style="margin-top:8px"><i id="fastBar" style="background:var(--accent);width:0"></i></div>
@@ -319,7 +345,7 @@ h2 .btns{display:inline-flex}
           <div class="btns" id="fastBtns"></div>
         </div>
 
-        <div class="card">
+        <div class="card" id="stepsCard">
           <h2>Steps <span id="stepsPct"></span></h2>
           <div class="stat" id="stepsStat">0 <small>/ 10,000</small></div>
           <div class="bar" style="margin-top:8px"><i id="stepsBar" style="background:var(--steps);width:0"></i></div>
@@ -395,6 +421,8 @@ h2 .btns{display:inline-flex}
       <div class="searchrow"><input id="recipeSearch" placeholder="Search recipes (e.g. chicken curry, protein, vegan, slow cooker)…" autocomplete="off"></div>
       <div class="btns" id="recipeCats" style="margin-top:10px"></div>
       <div class="btns" id="recipeDiets" style="margin-top:8px"></div>
+      <div class="btns" id="recipeKcal" style="margin-top:8px"></div>
+      <div id="recipeOfDay"></div>
       <div class="rgrid" id="recipeList"></div>
       <p class="muted" style="font-size:12px;margin:12px 0 0">Nutrition per serve is calculated from the USDA values of each ingredient (raw weights), so it changes if you swap or scale ingredients. Tap a recipe to see the ingredients and log a serve.</p>
     </div>
@@ -473,6 +501,43 @@ h2 .btns{display:inline-flex}
           <div class="f"><label>Fat %</label><input type="number" data-set="macroF" min="0" max="100"></div>
         </div>
         <div class="kv" id="macroStats" style="grid-template-columns:repeat(3,1fr)"></div>
+      </div>
+      <div class="card span6">
+        <h2>Meals &amp; diary <span class="pill" id="mealPctSum"></span></h2>
+        <p class="muted" style="margin-top:0;font-size:13px">Rename or reorder the meals and share your calorie goal between them — each meal then shows its own budget.</p>
+        <div id="mealSettings"></div>
+        <div class="settings" style="margin-top:12px">
+          <div class="f"><label>Eat a bit more on…</label>
+            <select data-sets="weekendDays"><option value="">No — same goal every day</option><option value="67">Saturdays and Sundays</option><option value="567">Fridays, Saturdays and Sundays</option><option value="56">Fridays and Saturdays</option></select></div>
+          <div class="f"><label>Extra on those days (kcal)</label><input type="number" data-set="weekendExtra" min="0" step="50"></div>
+          <div class="f"><label>Diet preference (pre-selects the recipe filter)</label>
+            <select data-sets="diet"><option value="">Classic — everything</option><option value="Vegetarian">Vegetarian</option><option value="Vegan">Vegan</option><option value="Pescatarian">Pescatarian</option></select></div>
+          <div class="f"><label>Glass size for the water button (ml)</label><input type="number" data-set="glassMl" min="50" step="50"></div>
+          <div class="f"><label>Exercise counts toward burned?</label><select data-set="countEx"><option value="1">Yes</option><option value="0">No — goal only</option></select></div>
+          <div class="f"><label>Starting weight for the progress bar (kg, blank = first weigh-in)</label><input type="number" data-set="startWeight" step="0.1"></div>
+          <div class="f"><label>Show water card</label><select data-set="showWater"><option value="1">Yes</option><option value="0">No</option></select></div>
+          <div class="f"><label>Show fasting card</label><select data-set="showFast"><option value="1">Yes</option><option value="0">No</option></select></div>
+          <div class="f"><label>Show steps card</label><select data-set="showSteps"><option value="1">Yes</option><option value="0">No</option></select></div>
+          <div class="f"><label>Show notes &amp; mood</label><select data-set="showNotes"><option value="1">Yes</option><option value="0">No</option></select></div>
+        </div>
+        <p class="muted" style="font-size:12px;margin:10px 0 0" id="weekendNote"></p>
+      </div>
+      <div class="card span6">
+        <h2>Reminders <span class="pill" id="remState"></span></h2>
+        <p class="muted" style="margin-top:0;font-size:13px" id="remNote"></p>
+        <div class="btns" style="margin-bottom:12px"><button class="btn" id="remAllow">Allow notifications</button><button class="btn ghost" id="remTest">Send a test</button></div>
+        <div class="settings">
+          <div class="f"><label>Meal reminders (skipped once the meal is logged)</label><select data-set="remMeals"><option value="0">Off</option><option value="1">On</option></select></div>
+          <div class="f tgrid4" id="mealTimes"></div>
+          <div class="f"><label>Water reminder (while you're under your goal)</label><select data-set="remWater"><option value="0">Off</option><option value="1">On</option></select></div>
+          <div class="f tgrid3">
+            <div><label>Every (h)</label><input type="number" data-set="remWaterEvery" min="1" max="6"></div>
+            <div><label>From</label><input type="time" data-sets="remWaterFrom"></div>
+            <div><label>Until</label><input type="time" data-sets="remWaterTo"></div></div>
+          <div class="f"><label>Weigh-in reminder</label><select data-set="remWeigh"><option value="0">Off</option><option value="1">Every day</option><option value="7">Mondays</option></select></div>
+          <div class="f"><label>Weigh-in time</label><input type="time" data-sets="remWeighAt"></div>
+          <div class="f"><label>Tell me when a fast is complete</label><select data-set="remFast"><option value="1">Yes</option><option value="0">No</option></select></div>
+        </div>
       </div>
       <div class="card span6">
         <h2>My saved meals</h2>
@@ -615,6 +680,19 @@ h2 .btns{display:inline-flex}
   </div>
 </div>
 
+<!-- First-run setup -->
+<div class="modal" id="setupModal" style="z-index:13">
+  <div class="sheet wiz">
+    <h3><span id="wizTitle">Welcome to Daily Fuel</span><button class="link" data-wiz="skip" style="margin-left:auto;font-size:13px">Skip</button></h3>
+    <div class="prog"><i id="wizProg" style="width:33%"></i></div>
+    <div id="wizBody"></div>
+    <div class="actions">
+      <button class="btn ghost hidden" id="wizBack" data-wiz="back">‹ Back</button>
+      <button class="btn" id="wizNext" data-wiz="next">Next ›</button>
+    </div>
+  </div>
+</div>
+
 <!-- Quick add -->
 <div class="modal" id="quickModal">
   <div class="sheet">
@@ -711,8 +789,14 @@ const EXERCISES = [
   ["Dancing",5],["Zumba / dance class",7],["Gardening",3.8],["Mowing the lawn",5.5],["Housework (vigorous)",3.5],["Playing with kids (active)",4],["Physical work (labouring)",6],["Other (moderate)",4],["Other (vigorous)",7]
 ];
 
-const DEFAULTS = {calGoal:2000,waterGoal:2500,stepGoal:10000,weightKg:70,countSteps:1,fibreGoal:30,sodiumLimit:2300,
-  sex:1,age:30,heightCm:170,goalWeight:0,activity:1.375,rate:0,macroP:30,macroC:40,macroF:30,ffRegion:""};
+const DEFAULTS = {calGoal:2000,waterGoal:2500,stepGoal:10000,weightKg:70,countSteps:1,countEx:1,fibreGoal:30,sodiumLimit:2300,
+  sex:1,age:30,heightCm:170,goalWeight:0,startWeight:0,activity:1.375,rate:0,macroP:30,macroC:40,macroF:30,ffRegion:"",diet:"",
+  pctBreakfast:30,pctLunch:40,pctDinner:25,pctSnacks:5, weekendDays:"",weekendExtra:200, glassMl:250, showWater:1,showFast:1,showSteps:1,showNotes:1,
+  remMeals:0,tBreakfast:"09:00",tLunch:"13:00",tDinner:"19:00",tSnacks:"15:00", remWater:0,remWaterEvery:2,remWaterFrom:"08:00",remWaterTo:"20:00", remWeigh:0,remWeighAt:"07:00", remFast:1};
+// which meal keys are shown, in what order, and under what name (keys never change so old logs still match)
+const mealOrder = () => (state.mealOrder && state.mealOrder.length===MEALS.length) ? state.mealOrder : MEALS;
+const mealName = m => (state.mealNames||{})[m] || m;
+const mealOptions = () => mealOrder().map(m=>`<option value="${m}">${esc(mealName(m))}</option>`).join("");
 const MACRO_PRESETS = [["Balanced",30,40,30],["High protein",40,35,25],["Low carb",35,20,45],["Keto",25,5,70],["Endurance",20,55,25]];
 
 // ---------- state ----------
@@ -720,7 +804,9 @@ let state = load();
 let cur = todayKey();
 function fresh(s){ s=s||{}; return {settings:{...DEFAULTS,...s.settings},days:s.days||{},myFoods:s.myFoods||[],weights:s.weights||{},
   combos:s.combos||[],barcodes:s.barcodes||{},theme:s.theme||"",plan:s.plan||{},shop:s.shop||{},backupAt:s.backupAt||0,myRecipes:s.myRecipes||[],
-  fast:s.fast||null,fasts:s.fasts||[],fastHours:s.fastHours==null?16:s.fastHours,measures:s.measures||{},health:s.health||null}; }
+  fast:s.fast||null,fasts:s.fasts||[],fastHours:s.fastHours==null?16:s.fastHours,measures:s.measures||{},health:s.health||null,
+  mealNames:s.mealNames||{},mealOrder:s.mealOrder||[],favs:s.favs||[],remFired:s.remFired||{},
+  setupDone:!!(s.setupDone || Object.keys(s.days||{}).length || Object.keys(s.weights||{}).length)}; }
 // merge a backup into the current data: keep both sets of days (entries de-duplicated by id), weights, foods and meals
 function mergeState(cur, inc){
   const out=fresh(cur);
@@ -738,6 +824,7 @@ function mergeState(cur, inc){
   Object.assign(out.barcodes, inc.barcodes||{});
   const mr=new Set(out.myRecipes.map(r=>r.id)); (inc.myRecipes||[]).forEach(r=>{ if(!mr.has(r.id)) out.myRecipes.push(r); });
   Object.keys(inc.plan||{}).forEach(k=>{ if(!out.plan[k]||!out.plan[k].length) out.plan[k]=inc.plan[k]; });
+  (inc.favs||[]).forEach(f=>{ if(!out.favs.includes(f)) out.favs.push(f); });
   return out;
 }
 function load(){
@@ -778,13 +865,21 @@ function totals(k){
   d.water.forEach(w=>t.water+=w.ml);
   d.exercise.forEach(e=>t.ex+=e.kcal);
   t.stepKcal = t.steps * 0.04 * (currentWeight(k)/70);
-  t.burn = t.ex + (+s.countSteps ? t.stepKcal : 0);
+  t.burn = (+s.countEx ? t.ex : 0) + (+s.countSteps ? t.stepKcal : 0);
   t.goal = goalFor(k);
   t.left = t.goal - t.kcal + t.burn;
   return t;
 }
-// the day's calorie goal: a 5:2 fast day overrides the usual goal
-function goalFor(k){ const d=state.days[k]; return d && d.goal ? d.goal : state.settings.calGoal; }
+// the day's calorie goal: a 5:2 fast day overrides everything; otherwise weekend days get a bit more and
+// weekdays a bit less so the week's total stays the same (weekendDays: "67" Sat+Sun, "567" Fri–Sun, "56" Fri+Sat)
+function isWeekendDay(k){ const wd=String(state.settings.weekendDays||""); if(!wd) return false; const d=parseKey(k).getDay(); return wd.includes(String(d===0?7:d)); }
+function goalFor(k){
+  const d=state.days[k], s=state.settings; if(d && d.goal) return d.goal;
+  const wd=String(s.weekendDays||""), extra=+s.weekendExtra||0; if(!wd || !extra) return s.calGoal;
+  const n=wd.length; return Math.round((isWeekendDay(k) ? s.calGoal+extra : s.calGoal-extra*n/(7-n))/5)*5;
+}
+// the calorie budget for one meal on day k, from the percentages in Settings
+function mealBudget(m,k){ return Math.round(goalFor(k)*(+state.settings["pct"+m]||0)/100); }
 
 // latest logged weight on or before day k, else the profile weight
 function currentWeight(k){
@@ -862,9 +957,11 @@ function renderToday(){
   $("#remaining").textContent = fmt(Math.abs(t.left));
   $("#remaining").style.color = t.left<0 ? "var(--burn)" : "";
   $("#remainingLbl").textContent = t.left<0 ? "kcal over" : "kcal remaining";
-  $("#sGoal").innerHTML=fmt(t.goal)+(d.goal?' <span class="pill" title="5:2 fast day">5:2</span>':""); $("#sFood").textContent=fmt(t.kcal);
+  $("#sGoal").innerHTML=fmt(t.goal)+(d.goal?' <span class="pill" title="5:2 fast day">5:2</span>':s.weekendDays&&+s.weekendExtra?` <span class="pill" title="${isWeekendDay(cur)?"Weekend: a bit more today":"Weekday: a bit less, saved for the weekend"}">${isWeekendDay(cur)?"w/e":"wk"}</span>`:""); $("#sFood").textContent=fmt(t.kcal);
   $("#sBurn").textContent=fmt(t.burn); $("#sNet").textContent=fmt(t.left);
-  $("#burnNote").textContent = "Burned = exercise " + fmt(t.ex) + (+s.countSteps ? " + steps " + fmt(t.stepKcal) : " (steps not counted)") + " kcal";
+  $("#burnNote").textContent = "Burned = " + (+s.countEx ? "exercise " + fmt(t.ex) : "exercise not counted") + (+s.countSteps ? " + steps " + fmt(t.stepKcal) : " (steps not counted)") + " kcal";
+  ["water","fast","steps"].forEach(n=>$("#"+n+"Card").classList.toggle("hidden", !+s["show"+n[0].toUpperCase()+n.slice(1)]));
+  $("#noteBlock").classList.toggle("hidden", !+s.showNotes);
   // nudge for a backup once there's something worth losing
   const sinceBackup=(Date.now()-(state.backupAt||0))/864e5, logged=Object.keys(state.days).length;
   const nag = logged>=5 && sinceBackup>14;
@@ -904,6 +1001,13 @@ function renderToday(){
       if(perDay*g>0 && Math.abs(perDay)>0.005){ const days=Math.round(g/perDay); if(days<730) info.push(`on track for ${parseKey(shift(cur,days)).toLocaleDateString(undefined,{day:"numeric",month:"short",year:days>300?"numeric":undefined})} at this rate`); }
       else if(trNow!==null && tr2!==null) info.push("trend is flat or moving away from goal"); } }
   $("#weightInfo").innerHTML = info.join(" · ") + (wToday?` · <button class="link" id="weightDel">Remove</button>`:"");
+  // progress from the starting weight to the goal
+  const allW=Object.keys(state.weights).sort(), startW = +s.startWeight || (allW.length ? state.weights[allW[0]] : 0);
+  if(s.goalWeight && startW && Math.abs(startW-s.goalWeight)>=0.5){
+    const total=startW-s.goalWeight, done=startW-b.w, pct=Math.max(0,Math.min(1,done/total));
+    $("#wprog").innerHTML = `<div class="bar" style="margin-top:8px"><i style="width:${pct*100}%;background:var(--accent)"></i></div>
+      <div class="row muted" style="font-size:12px;margin-top:3px"><span>Start ${startW} kg</span><span>${Math.abs(done)<0.05?"0":(done*Math.sign(total)<0?"+":"")+(Math.round(done*10)/10)} of ${(Math.round(total*10)/10)} kg (${Math.round(pct*100)}%)</span><span>Goal ${s.goalWeight} kg</span></div>`;
+  } else $("#wprog").innerHTML="";
   $("#weightIn").placeholder = wToday ? `Update (${wToday} kg)` : "Log weight (kg)";
   const recent = wKeys.filter(d=>d>shift(cur,-30));
   if(recent.length>1){
@@ -916,13 +1020,13 @@ function renderToday(){
   } else $("#spark").innerHTML = "";
 
   // meals
-  $("#meals").innerHTML = MEALS.map(m=>{
+  $("#meals").innerHTML = mealOrder().map(m=>{
     const items = d.foods.filter(f=>f.meal===m);
-    const sum = items.reduce((a,f)=>a+f.kcal*f.qty,0);
+    const sum = items.reduce((a,f)=>a+f.kcal*f.qty,0), bud=mealBudget(m,cur);
     const ms = k => fmt(items.reduce((a,f)=>a+(f[k]||0)*f.qty,0));
     const yest = peek(shift(cur,-1)).foods.filter(f=>f.meal===m);
     return `<div class="meal">
-      <div class="meal-h"><b>${m} <span class="muted" style="font-weight:400;font-size:13px">${items.length?`${fmt(sum)} kcal · P ${ms("p")} · C ${ms("c")} · F ${ms("f")}`:""}</span></b>
+      <div class="meal-h"><b>${esc(mealName(m))} <span class="muted" style="font-weight:400;font-size:13px">${bud?`<span class="${sum>bud?"over":""}">${fmt(sum)}</span> / ${fmt(bud)} kcal`:items.length?`${fmt(sum)} kcal`:""}${items.length?` · P ${ms("p")} · C ${ms("c")} · F ${ms("f")}`:""}</span></b>
       <span class="mealbtns">
         ${items.length?`<button class="link" style="color:var(--muted)" data-savemeal="${m}">Save meal</button>`:
           yest.length?`<button class="link" style="color:var(--muted)" data-copymeal="${m}">Copy yesterday</button>`:""}
@@ -940,8 +1044,9 @@ function renderToday(){
   $("#waterStat").innerHTML = `${fmt(t.water)} <small>/ ${fmt(s.waterGoal)} ml</small>`;
   $("#waterBar").style.width = Math.min(wp*100,100)+"%";
   $("#waterPct").textContent = Math.round(wp*100)+"%";
-  const nG = Math.max(1, Math.round(s.waterGoal/250)), full = Math.floor(t.water/250);
-  $("#glasses").innerHTML = Array.from({length:Math.max(nG,full)},(_,i)=>`<div class="glass ${i<full?"full":""}"></div>`).join("");
+  const gl=+s.glassMl||250, nG = Math.max(1, Math.round(s.waterGoal/gl)), full = Math.floor(t.water/gl);
+  $("#glasses").innerHTML = Array.from({length:Math.min(Math.max(nG,full),40)},(_,i)=>`<div class="glass ${i<full?"full":""}"></div>`).join("");
+  $("#glassBtn").dataset.water=gl; $("#glassBtn").textContent=`+ Glass ${gl}`;
 
   // steps
   const sp = s.stepGoal ? t.steps/s.stepGoal : 0;
@@ -1159,7 +1264,19 @@ function renderWeightChart(){
 function renderSettings(){
   const s = state.settings;
   $$("[data-set]").forEach(el=>{ if(document.activeElement!==el) el.value = s[el.dataset.set]; });
+  $$("[data-sets]").forEach(el=>{ if(document.activeElement!==el) el.value = s[el.dataset.sets]||""; });
   $("#theme").value = state.theme||"";
+  // meals: name, share of the goal, order
+  const order=mealOrder(), pctSum=order.reduce((a,m)=>a+(+s["pct"+m]||0),0);
+  $("#mealSettings").innerHTML = order.map((m,i)=>`<div class="mealrow"><input value="${esc(mealName(m))}" data-mealname="${m}" aria-label="Name of ${m}" maxlength="18">
+      <span class="muted" style="font-size:12px;white-space:nowrap">${m!==mealName(m)?m+" · ":""}${fmt(mealBudget(m,todayKey()))} kcal</span>
+      <input type="number" value="${+s["pct"+m]||0}" data-mealpct="${m}" min="0" max="100" aria-label="Percent of goal for ${m}"><span class="muted">%</span>
+      <button class="iconbtn" data-mealmove="${m}|-1" ${i===0?"disabled":""} aria-label="Move up">&#8593;</button><button class="iconbtn" data-mealmove="${m}|1" ${i===order.length-1?"disabled":""} aria-label="Move down">&#8595;</button></div>`).join("");
+  $("#mealPctSum").textContent=`Total ${pctSum}%`; $("#mealPctSum").style.color = pctSum===100?"var(--accent)":"var(--burn)";
+  const wd=String(s.weekendDays||""), n=wd.length;
+  $("#weekendNote").textContent = wd && +s.weekendExtra ? `Weekend days get ${fmt(s.calGoal+ +s.weekendExtra)} kcal and the other ${7-n} days ${fmt(Math.round((s.calGoal-s.weekendExtra*n/(7-n))/5)*5)} kcal, so the week still adds up to ${fmt(s.calGoal*7)} kcal.` : "";
+  $("#mealTimes").innerHTML = order.map(m=>`<div><label>${esc(mealName(m))}</label><input type="time" data-sets="t${m}" value="${esc(s["t"+m]||"")}"></div>`).join("");
+  renderRemState();
   $("#ffRegion").value = s.ffRegion||"";
   $("#backupInfo").innerHTML = state.backupAt ? `Last backup: <b>${new Date(state.backupAt).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}</b>` : `<b>No backup yet.</b>`;
   $("#shareBtn").classList.toggle("hidden", !(navigator.canShare && window.File));
@@ -1216,7 +1333,6 @@ function applyTheme(){ if(state.theme) document.documentElement.dataset.theme=st
 
 // ---------- food modal ----------
 let picked = null;
-$("#fMeal").innerHTML = MEALS.map(m=>`<option>${m}</option>`).join("");
 function defaultMeal(){ const h=new Date().getHours(); return h<11?"Breakfast":h<15?"Lunch":h<21?"Dinner":"Snacks"; }
 let pendingCode=null, curBases=[], onlineQ="", onlineRes=[], installEvt=null;
 function openFood(meal){
@@ -1224,8 +1340,8 @@ function openFood(meal){
   picked=null; pendingCode=null; setBasis(null); onlineQ=""; onlineRes=[]; pinRecipe=null; showRecipe(null);
   ["#fName","#fKcal","#fP","#fC","#fF","#fFi","#fSu","#fNa","#fSf","#foodSearch"].forEach(s=>$(s).value=""); $("#moreNut").open=false;
   $("#fQty").value=1; $("#fSave").checked=false;
-  $("#fMeal").value = meal || (cur===todayKey()?defaultMeal():"Lunch");
-  $("#foodTitle").textContent = "Add to " + $("#fMeal").value;
+  $("#fMeal").innerHTML=mealOptions(); $("#fMeal").value = meal || (cur===todayKey()?defaultMeal():"Lunch");
+  $("#foodTitle").textContent = "Add to " + mealName($("#fMeal").value);
   searchFoods(); updTotal();
   $("#foodModal").classList.add("open"); $("#foodSearch").focus();
 }
@@ -1252,12 +1368,12 @@ function bigFoods(){
     // recipes (recipes.js); nutrition per serve, calculated from the USDA values of the ingredients
     const RC=window.RECIPES;
     if(RC) RC.rows.forEach((r,ri)=>{ const lc=r[0].toLowerCase(), rcat=RC.cats[r[1]];
-      BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], fi:r[9], su:r[10], na:r[11], sf:r[12], ri, src:"recipe", lc, head:lc, img:recipeImg(r[0],rcat), img2:window.RECIPE_IMG?window.RECIPE_IMG.per(r[0]):""}); });
+      BIG.push({name:r[0], title:r[0], cat:`Recipe · ${rcat} · serves ${r[2]}`, rcat, serves:r[2], ings:r[3], method:r[4], kcal:r[5], p:r[6], c:r[7], f:r[8], fi:r[9], su:r[10], na:r[11], sf:r[12], ri, src:"recipe", lc, head:lc, img:recipeImg(r[0],rcat), img2:window.RECIPE_IMG?window.RECIPE_IMG.per(r[0]):"", time:prepTime(r[4])}); });
     // the user's own recipes (per-serve values calculated from their ingredients)
     state.myRecipes.forEach(r=>{ const n=myRecipeNutrition(r), lc=r.title.toLowerCase();
       BIG.push({name:r.title, title:r.title, cat:`My recipe · serves ${r.serves}`, rcat:"My recipes", serves:r.serves, ingList:r.ings.map(i=>[i.name,i.g]),
-        method:r.method||"", kcal:n.kcal, p:n.p, c:n.c, f:n.f, fi:n.fi, su:n.su, na:n.na, sf:n.sf, ri:"m"+r.id, src:"recipe", mine:true, lc, head:lc, img:recipeImg(r.title,"My recipes")}); });
-    BIG.forEach(f=>{ if(f.src==="recipe") f.tags=dietTags(f); });
+        method:r.method||"", kcal:n.kcal, p:n.p, c:n.c, f:n.f, fi:n.fi, su:n.su, na:n.na, sf:n.sf, ri:"m"+r.id, src:"recipe", mine:true, lc, head:lc, img:recipeImg(r.title,"My recipes"), time:prepTime(r.method||"")}); });
+    BIG.forEach(f=>{ if(f.src==="recipe") f.tags=dietTags(f).concat(styleTags(f)); });
   }
   return BIG;
 }
@@ -1302,6 +1418,34 @@ function dietTags(f){
   return t;
 }
 const DIETS=["Vegetarian","Vegan","Pescatarian","Dairy-free","Low carb","High protein","High fibre","Under 400 kcal"];
+const STYLES=["Quick","Few ingredients","Baking","No-cook","One-pot"];
+const KCAL_RANGES=[["","Any kcal"],["0-200","Under 200"],["200-300","200–300"],["300-400","300–400"],["400-500","400–500"],["500-600","500–600"],["600-9999","600+"]];
+// rough total time from the step text: the longest time mentioned in each step, added up, plus a little prep
+function prepTime(method){
+  if(!method) return 0;
+  let total=0, any=false;
+  method.split(" | ").forEach(st=>{
+    let mx=0; const re=/(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*(min(?:ute)?s?|hours?|hrs?|h)\b/gi; let m;
+    while((m=re.exec(st))){ const n=+(m[2]||m[1]), v=/^h/i.test(m[3])?n*60:n; if(v>mx) mx=v; any=true; }
+    if(/overnight/i.test(st)){ mx=Math.max(mx,480); any=true; }
+    total+=mx;
+  });
+  // no times in the text (assemble-only dishes): a few minutes per step
+  return any ? Math.min(720, Math.round(total+5)) : Math.max(5, 2+4*method.split(" | ").length);
+}
+function styleTags(f){
+  const t=[], m=f.method||"", n=ingList(f).length;
+  if(f.time && f.time<=20) t.push("Quick");
+  if(n<=5) t.push("Few ingredients");
+  if(/\boven\b|\bbake|\broast|°c|fan-forced/i.test(m)) t.push("Baking");
+  if(m && !/cook|fry|boil|bake|roast|grill|simmer|heat|oven|toast|saut|microwave|steam|\bpan\b|barbecue|bbq|poach|sear|char/i.test(m)) t.push("No-cook");
+  if(/one[- ]pot|one[- ]pan|slow cooker|tray ?bake|same pan|same pot/i.test(m) || /slow cooker|one-pot/i.test(f.rcat||"")) t.push("One-pot");
+  return t;
+}
+const isFav = f => state.favs.includes(String(f.ri));
+const favBtn = f => `<button class="fav ${isFav(f)?"on":""}" data-fav="${f.ri}" aria-label="${isFav(f)?"Remove from favourites":"Save to favourites"}" title="Favourite">${isFav(f)?"★":"☆"}</button>`;
+// one recipe per day, the same for everyone: a hash of the date
+function recipeOfTheDay(diet){ const list=bigFoods().filter(f=>f.src==="recipe" && !f.mine && (!diet||f.tags.includes(diet))); if(!list.length) return null; let h=7; for(const c of todayKey()) h=(h*31+c.charCodeAt(0))>>>0; return list[h%list.length]; }
 const EXTRA = ["fi","su","na","sf"];   // fibre g, sugar g, sodium mg, saturated fat g
 // dish illustration for a recipe (img/*.webp, chosen from the title); "" when the image set isn't loaded
 function recipeImg(title, cat){ return window.RECIPE_IMG ? window.RECIPE_IMG.src(window.RECIPE_IMG.pick(title, cat)) : ""; }
@@ -1370,7 +1514,7 @@ function showRecipe(f){
   const RC=window.RECIPES, box=$("#recipeInfo");
   if(!f){ box.classList.add("hidden"); box.innerHTML=""; return; }
   const rt=rateFood(f);
-  box.innerHTML = `${thumb(f,"rhero")}<b>${esc(f.title)}</b> <span class="muted">· ${esc(f.rcat)} · serves ${f.serves}${f.tags&&f.tags.length?` · ${f.tags.join(" · ")}`:""}${rt?` · <i class="rate ${rt.cls}"></i> ${rt.label}`:""}</span>
+  box.innerHTML = `${thumb(f,"rhero")}<b>${esc(f.title)}</b> <button class="link" data-fav="${f.ri}" style="font-size:13px">${isFav(f)?"★ Favourite":"☆ Save"}</button> <span class="muted">· ${esc(f.rcat)} · serves ${f.serves}${f.time?` · ${f.time} min`:""}${f.tags&&f.tags.length?` · ${f.tags.join(" · ")}`:""}${rt?` · <i class="rate ${rt.cls}"></i> ${rt.label}`:""}</span>
     <ul>${ingList(f).map(([n,g])=>`<li>${fmt(g)} g ${esc(n)}</li>`).join("")}</ul>
     ${f.method.includes(" | ") ? `<ol class="steps">${f.method.split(" | ").map(s=>`<li>${esc(s)}</li>`).join("")}</ol>` : `<p>${esc(f.method)}</p>`}
     <p class="muted">Per serve: ${fmt(f.kcal)} kcal · P ${r1(f.p)} g · C ${r1(f.c)} g · F ${r1(f.f)} g${f.fi!=null?` · fibre ${r1(f.fi)} g · sugar ${r1(f.su)} g · sodium ${fmt(f.na)} mg · sat fat ${r1(f.sf)} g`:""} — calculated from USDA ingredient values (raw weights).</p>
@@ -1391,12 +1535,12 @@ function renderPlan(){
   const days=weekDays(), today=todayKey(), s=state.settings;
   $("#planWeekLbl").textContent = `${dayName(planStart,{day:"numeric",month:"short"})} – ${dayName(shift(planStart,6),{day:"numeric",month:"short"})}`;
   $("#planGrid").innerHTML = days.map(k=>{
-    const items=state.plan[k]||[], tot=planTotals(items), over=tot.kcal>s.calGoal;
+    const items=state.plan[k]||[], tot=planTotals(items), dayGoal=goalFor(k), over=tot.kcal>dayGoal;
     return `<div class="pday ${k===today?"today":""}"><div class="pd-h"><b>${dayName(k,{weekday:"short"})}</b><span class="muted">${parseKey(k).getDate()}</span>${k===today?'<span class="pill">today</span>':""}</div>
-      ${MEALS.map(m=>`<div class="pmeal"><div class="pm-h"><span>${m}</span><button class="link" data-planadd="${k}|${m}">+ Add</button></div>
+      ${mealOrder().map(m=>`<div class="pmeal"><div class="pm-h"><span>${esc(mealName(m))}</span><button class="link" data-planadd="${k}|${m}">+ Add</button></div>
         ${items.map((it,i)=>it.meal===m?`<div class="pitem"><span>${esc(it.t)}${it.q!==1?` ×${it.q}`:""}</span><span class="muted">${fmt(it.kcal*it.q)}</span><button class="pdel" data-plandel="${k}|${i}" aria-label="Remove">&times;</button></div>`:"").join("")}
       </div>`).join("")}
-      <div class="pd-f"><span><b style="${over?"color:var(--burn)":""}">${fmt(tot.kcal)}</b> / ${fmt(s.calGoal)} kcal</span><span class="muted">P ${fmt(tot.p)} · C ${fmt(tot.c)} · F ${fmt(tot.f)} g</span>${items.length?`<button class="btn ghost" data-planlog="${k}">Log day</button>`:""}</div>
+      <div class="pd-f"><span><b style="${over?"color:var(--burn)":""}">${fmt(tot.kcal)}</b> / ${fmt(dayGoal)} kcal</span><span class="muted">P ${fmt(tot.p)} · C ${fmt(tot.c)} · F ${fmt(tot.f)} g</span>${items.length?`<button class="btn ghost" data-planlog="${k}">Log day</button>`:""}</div>
     </div>`; }).join("");
   renderShop();
 }
@@ -1404,7 +1548,7 @@ function openPlanPicker(k, m, preset){
   planPreset=preset||null;
   const days=weekDays(); if(!days.includes(k)) days.unshift(k);
   $("#planDay").innerHTML=days.map(d=>`<option value="${d}">${d===todayKey()?"Today":d===shift(todayKey(),1)?"Tomorrow":dayName(d)}</option>`).join("");
-  $("#planDay").value=k; $("#planMeal").innerHTML=MEALS.map(x=>`<option>${x}</option>`).join(""); $("#planMeal").value=m||defaultMeal();
+  $("#planDay").value=k; $("#planMeal").innerHTML=mealOptions(); $("#planMeal").value=m||defaultMeal();
   $("#planTitle").textContent = preset ? `Plan: ${preset.title}` : "Add to meal plan";
   $("#planSearch").value=""; $("#planSearch").closest(".searchrow").classList.toggle("hidden", !!preset);
   renderPlanResults(); $("#planModal").classList.add("open"); if(!preset) $("#planSearch").focus();
@@ -1456,20 +1600,25 @@ function renderShop(){
 }
 function shopText(){ const items=shopItems(), chk=state.shop[planStart]||{}; return `Shopping list · ${shopSel?dayName(shopSel):"week of "+dayName(planStart)}\n`+items.map(([n,g])=>`${chk[n]?"☑":"☐"} ${n} — ${shopQty(n,g)}`).join("\n"); }
 // Recipes tab
-let rcat="", rdiet="", pinRecipe=null;
+let rcat="", rdiet=null, rkcal="", pinRecipe=null;
 function renderRecipes(){
   const RC=window.RECIPES; if(!RC) return;
+  if(rdiet===null) rdiet=state.settings.diet||"";   // the diet preference from Settings pre-selects the filter
   $("#recipeCount").textContent = RC.rows.length.toLocaleString()+" recipes";
-  $("#recipeDiets").innerHTML = [`<button class="chip ${rdiet===""?"on":""}" data-rdiet="">Any diet</button>`].concat(DIETS.map(d=>`<button class="chip ${rdiet===d?"on":""}" data-rdiet="${d}">${d}</button>`)).join("");
-  $("#recipeCats").innerHTML = [`<button class="chip ${rcat===""?"on":""}" data-rcat="">All</button>`]
+  $("#recipeDiets").innerHTML = [`<button class="chip ${rdiet===""?"on":""}" data-rdiet="">Any diet</button>`].concat(DIETS.concat(STYLES).map(d=>`<button class="chip ${rdiet===d?"on":""}" data-rdiet="${d}">${d}</button>`)).join("");
+  $("#recipeKcal").innerHTML = KCAL_RANGES.map(([v,l])=>`<button class="chip ${rkcal===v?"on":""}" data-rkcal="${v}">${l}</button>`).join("");
+  $("#recipeCats").innerHTML = [`<button class="chip ${rcat===""?"on":""}" data-rcat="">All</button>`, `<button class="chip ${rcat==="Favourites"?"on":""}" data-rcat="Favourites">★ Favourites${state.favs.length?` (${state.favs.length})`:""}</button>`]
     .concat(RC.cats.map(c=>`<button class="chip ${rcat===c?"on":""}" data-rcat="${esc(c)}">${esc(c)}</button>`))
-    .concat(state.myRecipes.length?[`<button class="chip ${rcat==="My recipes"?"on":""}" data-rcat="My recipes">★ My recipes (${state.myRecipes.length})</button>`]:[]).join("");
+    .concat(state.myRecipes.length?[`<button class="chip ${rcat==="My recipes"?"on":""}" data-rcat="My recipes">✎ My recipes (${state.myRecipes.length})</button>`]:[]).join("");
   const q=$("#recipeSearch").value.trim().toLowerCase(), alts=q.split(/\s+/).filter(Boolean).map(w=>SYN[w]||[w]);
-  let list=bigFoods().filter(f=>f.src==="recipe" && (!rcat||f.rcat===rcat) && (!rdiet||f.tags.includes(rdiet)) && alts.every(a=>a.some(x=>f.lc.includes(x)||f.rcat.toLowerCase().includes(x)||f.tags.some(t=>t.toLowerCase().includes(x)))));
+  const [kLo,kHi]=rkcal?rkcal.split("-").map(Number):[0,1e9];
+  let list=bigFoods().filter(f=>f.src==="recipe" && (!rcat||(rcat==="Favourites"?isFav(f):f.rcat===rcat)) && (!rdiet||f.tags.includes(rdiet)) && f.kcal>=kLo && f.kcal<kHi && alts.every(a=>a.some(x=>f.lc.includes(x)||f.rcat.toLowerCase().includes(x)||f.tags.some(t=>t.toLowerCase().includes(x)))));
   if(q) list=list.map(f=>[f,bigScore(f,alts)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  const rotd=(!q&&!rcat&&!rkcal)?recipeOfTheDay(rdiet):null;
+  $("#recipeOfDay").innerHTML = rotd ? `<div class="rotd" data-recipe="${rotd.ri}">${thumb(rotd,"rimg")}<div style="min-width:0"><div class="muted" style="font-size:12px;font-weight:600">⭐ Recipe of the day</div><b>${esc(rotd.title)}</b><div class="muted" style="font-size:13px">${fmt(rotd.kcal)} kcal per serve${rotd.time?` · ${rotd.time} min`:""} · ${esc(rotd.rcat)}${rotd.tags.length?` · ${rotd.tags.slice(0,3).join(" · ")}`:""}</div></div></div>` : "";
   const shown=list.slice(0,150);
-  $("#recipeList").innerHTML = shown.length ? shown.map(f=>`<div class="rcard ${f.mine?"mine":""}" data-recipe="${f.ri}">${thumb(f,"rimg")}<div class="rbody"><div class="rt">${rateDot(f)}${esc(f.title)}</div>
-      <div class="rm">${esc(f.rcat)} · serves ${f.serves}${f.tags.length?` · ${f.tags.slice(0,3).join(" · ")}`:""}</div><div class="rn"><b>${fmt(f.kcal)}</b> kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</div>
+  $("#recipeList").innerHTML = shown.length ? shown.map(f=>`<div class="rcard ${f.mine?"mine":""}" data-recipe="${f.ri}">${thumb(f,"rimg")}<div class="rbody"><div class="rt">${rateDot(f)}${esc(f.title)}</div>${favBtn(f)}
+      <div class="rm">${esc(f.rcat)} · serves ${f.serves}${f.time?` · ${f.time} min`:""}${f.tags.length?` · ${f.tags.slice(0,3).join(" · ")}`:""}</div><div class="rn"><b>${fmt(f.kcal)}</b> kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</div>
       ${f.mine?`<div class="rtools"><button class="link" data-editrecipe="${esc(f.ri.slice(1))}">Edit</button><button class="link" data-delrecipe="${esc(f.ri.slice(1))}" style="color:var(--burn)">Delete</button></div>`:""}</div></div>`).join("")
       + (list.length>shown.length ? `<div class="empty">Showing 150 of ${list.length.toLocaleString()} — type more to narrow it down.</div>` : "")
     : `<div class="empty">No recipes match.</div>`;
@@ -1758,7 +1907,7 @@ document.addEventListener("click", e=>{
     if(ds.fast==="start"){ const h=state.fastHours||16; state.fast={start:Date.now(),hours:h}; toast(`Fasting · goal ${h} h`); }
     else if(ds.fast==="end"){ const f=state.fast; state.fasts.push({start:f.start,end:Date.now(),hours:f.hours}); state.fasts=state.fasts.slice(-60); state.fast=null; toast(`Fast ended · ${hm(Date.now()-f.start)}`); }
     else if(ds.fast==="cancel"){ if(!confirm("Discard this fast without saving it?")) return; state.fast=null; }
-    save(); renderFast(); return;
+    save(); renderFast(); remSchedule(); return;
   }
   if(ds.fasthours!==undefined){ state.fastHours=+ds.fasthours; save(); renderFast(); return; }
   if(ds.fastday){ const d=day(); if(d.goal) delete d.goal; else d.goal=600; save(); render(); toast(d.goal?"Fast day: goal set to 600 kcal":"Back to your normal goal"); return; }
@@ -1790,6 +1939,12 @@ document.addEventListener("click", e=>{
   if(ds.steps){ day().steps=(day().steps||0)+ +ds.steps; save(); render(); return; }
   if(ds.goto){ cur=ds.goto; $('[data-tab="today"]').click(); return; }
   if(ds.preset){ const [,p,c,f]=MACRO_PRESETS[+ds.preset]; Object.assign(state.settings,{macroP:p,macroC:c,macroF:f}); save(); render(); toast("Macro split updated"); return; }
+  if(ds.mealmove){ const [m,dir]=ds.mealmove.split("|"), o=mealOrder().slice(), i=o.indexOf(m), j=i+ +dir; if(j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; state.mealOrder=o; save(); render(); return; }
+  if(ds.fav!==undefined){ const k=String(ds.fav), i=state.favs.indexOf(k); if(i>=0) state.favs.splice(i,1); else state.favs.push(k); save(); toast(i>=0?"Removed from favourites":"Saved to favourites ♥");
+    if(!$("#tab-recipes").classList.contains("hidden")) renderRecipes(); if(pinRecipe && String(pinRecipe.ri)===k) showRecipe(pinRecipe); return; }
+  if(ds.rkcal!==undefined){ rkcal=ds.rkcal; renderRecipes(); return; }
+  if(ds.wiz!==undefined){ wizGo(ds.wiz); return; }
+  if(ds.wizpick){ const [k,v]=ds.wizpick.split("|"); wiz[k]=v; wizRender(); return; }
   if(t.id==="weightDel"){ delete state.weights[cur]; save(); render(); toast("Weigh-in removed"); return; }
 });
 $("#prevDay").onclick=()=>{ cur=shift(cur,-1); render(); };
@@ -1807,12 +1962,12 @@ $("#measureSave").onclick=()=>{
   ["waist","hips","chest","arm","thigh","fat"].forEach(k=>$("#m_"+k).value="");
 };
 $("#histRange").onchange=renderHistory;
-$("#quickAddBtn").onclick=()=>{ $("#qMeal").innerHTML=MEALS.map(m=>`<option>${m}</option>`).join(""); $("#qMeal").value=cur===todayKey()?defaultMeal():"Lunch"; ["#qName","#qKcal","#qP","#qC","#qF"].forEach(s=>$(s).value=""); $("#quickModal").classList.add("open"); $("#qKcal").focus(); };
+$("#quickAddBtn").onclick=()=>{ $("#qMeal").innerHTML=mealOptions(); $("#qMeal").value=cur===todayKey()?defaultMeal():"Lunch"; ["#qName","#qKcal","#qP","#qC","#qF"].forEach(s=>$(s).value=""); $("#quickModal").classList.add("open"); $("#qKcal").focus(); };
 $("#qSubmit").onclick=()=>{
   const kcal=num($("#qKcal").value); if(!kcal){ toast("Enter the calories"); return; }
   const name=$("#qName").value.trim()||"Quick add";
   day().foods.push({id:uid(),meal:$("#qMeal").value,name,kcal,p:num($("#qP").value),c:num($("#qC").value),f:num($("#qF").value),qty:1});
-  save(); closeModals(); render(); toast(`Added ${fmt(kcal)} kcal to ${$("#qMeal").value}`);
+  save(); closeModals(); render(); toast(`Added ${fmt(kcal)} kcal to ${mealName($("#qMeal").value)}`);
 };
 $("#qKcal").onkeydown=e=>{ if(e.key==="Enter") $("#qSubmit").click(); };
 let noteT; $("#dayNote").oninput=()=>{ clearTimeout(noteT); noteT=setTimeout(()=>{ day().note=$("#dayNote").value.trim(); save(); }, 400); };
@@ -1846,7 +2001,7 @@ $("#scanBtn").onclick=openScan;
 $("#barcodeGo").onclick=()=>lookupBarcode($("#barcodeIn").value);
 $("#barcodeIn").onkeydown=e=>{ if(e.key==="Enter") $("#barcodeGo").click(); };
 ["#fKcal","#fQty"].forEach(s=>$(s).oninput=updTotal);
-$("#fMeal").onchange=()=>$("#foodTitle").textContent="Add to "+$("#fMeal").value;
+$("#fMeal").onchange=()=>$("#foodTitle").textContent="Add to "+mealName($("#fMeal").value);
 $("#foodSubmit").onclick=submitFood;
 $("#foodModal").addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target.id!=="foodSearch") submitFood(); });
 $("#eType").onchange=()=>{ $("#eName").value=EXERCISES[$("#eType").value][0]; estEx(); };
@@ -1860,7 +2015,13 @@ $("#stepsSave").onclick=()=>{ const v=$("#stepsSet").value; if(v!==""){ day().st
 $("#waterCustom").onkeydown=e=>{ if(e.key==="Enter") $("#waterAdd").click(); };
 $("#stepsSet").onkeydown=e=>{ if(e.key==="Enter") $("#stepsSave").click(); };
 $("#histMetric").onchange=renderHistory;
-$$("[data-set]").forEach(el=>el.onchange=()=>{ const v=+el.value||0; state.settings[el.dataset.set]=el.dataset.neg?v:Math.max(0,v); save(); render(); toast("Saved"); });
+$$("[data-set]").forEach(el=>el.onchange=()=>{ const v=+el.value||0; state.settings[el.dataset.set]=el.dataset.neg?v:Math.max(0,v); save(); render(); toast("Saved"); if(/^rem/.test(el.dataset.set)) remSchedule(); });
+// text-valued settings (times, weekend days, diet); the meal time inputs are re-rendered so this is delegated
+document.addEventListener("change", e=>{
+  const el=e.target; if(el.dataset.sets){ state.settings[el.dataset.sets]=el.value; save(); render(); toast("Saved"); if(/^(rem|t[A-Z])/.test(el.dataset.sets)) remSchedule(); if(el.dataset.sets==="diet") rdiet=null; return; }
+  if(el.dataset.mealpct){ state.settings["pct"+el.dataset.mealpct]=Math.max(0,Math.min(100,+el.value||0)); save(); render(); return; }
+  if(el.dataset.mealname){ const v=el.value.trim(); state.mealNames=state.mealNames||{}; if(v && v!==el.dataset.mealname) state.mealNames[el.dataset.mealname]=v; else delete state.mealNames[el.dataset.mealname]; save(); render(); toast("Meal renamed"); return; }
+});
 $("#applySuggest").onclick=()=>{ state.settings.calGoal=body().suggest; save(); render(); toast("Calorie goal updated"); };
 $("#applyAdaptive").onclick=()=>{ const a=adaptiveGoal(); if(!a.ok) return; state.settings.calGoal=a.suggest; save(); render(); toast("Calorie goal set from your results"); };
 $("#healthConnectBtn").onclick=healthConnect; $("#healthSyncBtn").onclick=()=>healthSync(true); $("#healthOffBtn").onclick=healthDisconnect;
@@ -1967,6 +2128,130 @@ async function healthSync(manual){
 }
 function healthDisconnect(){ state.health=null; save(); renderSettings(); if(HF && HF.disconnectFromHealthConnect) HF.disconnectFromHealthConnect().catch(()=>{}); toast("Health sync turned off"); }
 if(NATIVE){ healthSync(false); document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") healthSync(false); }); }
+
+// ---------- first-run setup: goal → about you → your plan ----------
+let wiz={step:0, goal:"lose", diet:""};
+const WIZ_PACES={lose:[["-0.25","Gentle · 0.25 kg a week"],["-0.5","Steady · 0.5 kg a week (recommended)"],["-0.75","Fast · 0.75 kg a week"]], maintain:[["0","Maintain my weight"]], gain:[["0.25","Slow · 0.25 kg a week (recommended)"],["0.5","Faster · 0.5 kg a week"]]};
+function wizOpen(){ wiz={step:0, goal:"lose", diet:state.settings.diet||""}; wizRender(); $("#setupModal").classList.add("open"); }
+function wizRender(){
+  const s=state.settings, b=$("#wizBody"), opt=(k,v,l,sub)=>`<button class="opt ${wiz[k]===v?"on":""}" data-wizpick="${k}|${v}">${l}${sub?`<small>${sub}</small>`:""}</button>`;
+  $("#wizProg").style.width=((wiz.step+1)/3*100)+"%";
+  $("#wizBack").classList.toggle("hidden", wiz.step===0);
+  $("#wizNext").textContent = wiz.step===2 ? "Start tracking" : "Next ›";
+  if(wiz.step===0){
+    $("#wizTitle").textContent="What's your main goal?";
+    b.innerHTML = `<div class="opts">${opt("goal","lose","Lose weight","A calorie goal below what you burn")}${opt("goal","maintain","Maintain / eat healthier","Match what you burn and watch the balance")}${opt("goal","gain","Gain weight or build muscle","A small surplus with plenty of protein")}</div>
+      <p class="muted" style="font-size:13px;margin:14px 0 6px">Do you follow a specific diet? Recipes will be filtered to match.</p>
+      <div class="btns">${[["","Classic"],["Vegetarian","Vegetarian"],["Vegan","Vegan"],["Pescatarian","Pescatarian"]].map(([v,l])=>`<button class="chip ${wiz.diet===v?"on":""}" data-wizpick="diet|${v}">${l}</button>`).join("")}</div>`;
+  } else if(wiz.step===1){
+    $("#wizTitle").textContent="About you";
+    const paces=WIZ_PACES[wiz.goal], rate=paces.some(p=>+p[0]===+s.rate)?String(+s.rate):paces[Math.min(1,paces.length-1)][0];
+    b.innerHTML = `<p class="muted" style="font-size:13px;margin-top:0">Used for the calorie formula (Mifflin-St Jeor). You can change any of it later in Settings.</p>
+      <div class="fields">
+        <div class="w2"><label>Sex</label><select id="wzSex"><option value="1" ${+s.sex?"selected":""}>Male</option><option value="0" ${+s.sex?"":"selected"}>Female</option></select></div>
+        <div class="w2"><label>Age</label><input type="number" id="wzAge" value="${s.age}" min="10" max="110"></div>
+        <div class="w2"><label>Height (cm)</label><input type="number" id="wzH" value="${s.heightCm}" step="0.5"></div>
+        <div class="w2"><label>Current weight (kg)</label><input type="number" id="wzW" value="${s.weightKg}" step="0.1"></div>
+        <div class="w2"><label>Goal weight (kg${wiz.goal==="maintain"?", optional":""})</label><input type="number" id="wzGW" value="${s.goalWeight||""}" step="0.1" placeholder="${wiz.goal==="maintain"?"leave blank":""}"></div>
+        <div class="w2"><label>Activity</label><select id="wzAct">${[["1.2","Sedentary — desk job, little exercise"],["1.375","Light — exercise 1–3 days/week"],["1.55","Moderate — exercise 3–5 days/week"],["1.725","Very active — 6–7 days/week"],["1.9","Athlete — hard training or physical job"]].map(([v,l])=>`<option value="${v}" ${+v===+s.activity?"selected":""}>${l}</option>`).join("")}</select></div>
+        <div class="w4"><label>Pace</label><select id="wzRate">${paces.map(([v,l])=>`<option value="${v}" ${v===rate?"selected":""}>${l}</option>`).join("")}</select></div>
+      </div>`;
+  } else {
+    $("#wizTitle").textContent="Your plan";
+    const bd=body(), mg={p:bd.suggest*s.macroP/100/4, c:bd.suggest*s.macroC/100/4, f:bd.suggest*s.macroF/100/9};
+    const diff=s.goalWeight?bd.w-s.goalWeight:0, perWeek=Math.abs(+s.rate), weeks=diff&&perWeek?Math.abs(diff)/perWeek:0;
+    const when=weeks?parseKey(shift(todayKey(),Math.round(weeks*7))).toLocaleDateString(undefined,{day:"numeric",month:"long",year:weeks>40?"numeric":undefined}):"";
+    b.innerHTML = `<div class="plan">${when&&diff*s.rate<0?`<div style="font-size:15px;margin-bottom:8px">We estimate you can reach <b>${s.goalWeight} kg</b> by <b>${when}</b></div>`:""}
+        <div class="muted" style="font-size:12px">Your daily calorie target</div><div class="big">${fmt(bd.suggest)} kcal</div>
+        <div class="row" style="justify-content:center;gap:18px;margin-top:8px;font-size:14px"><span><b>${fmt(mg.p)} g</b> <span class="muted">protein</span></span><span><b>${fmt(mg.c)} g</b> <span class="muted">carbs</span></span><span><b>${fmt(mg.f)} g</b> <span class="muted">fat</span></span></div></div>
+      <p class="muted" style="font-size:13px">Maintenance is about ${fmt(bd.tdee)} kcal a day; your pace ${+s.rate<0?"takes off":+s.rate>0?"adds":"keeps"} ${+s.rate?fmt(Math.abs(s.rate*7700/7))+" kcal a day":"it as is"}. After a few weeks of logging and weigh-ins, Settings → Calorie goal shows an <b>adaptive estimate</b> worked out from your actual results, which beats any formula.</p>
+      <p class="muted" style="font-size:13px">Tip: Settings → Reminders can nudge you to log meals and drink water; Settings → Meals lets you eat a little more on weekends.</p>`;
+  }
+}
+function wizGo(a){
+  if(a==="skip"){ state.setupDone=true; save(); closeModal($("#setupModal")); return; }
+  if(a==="back"){ wiz.step=Math.max(0,wiz.step-1); wizRender(); return; }
+  if(wiz.step===0){ state.settings.diet=wiz.diet; rdiet=null; wiz.step=1; wizRender(); return; }
+  if(wiz.step===1){
+    const s=state.settings, h=num($("#wzH").value), w=num($("#wzW").value);
+    if(!h||!w){ toast("Enter your height and weight"); return; }
+    s.sex=+$("#wzSex").value; s.age=Math.round(num($("#wzAge").value))||30; s.heightCm=h; s.weightKg=w; s.goalWeight=num($("#wzGW").value)||0; s.activity=+$("#wzAct").value; s.rate=+$("#wzRate").value;
+    if(s.goalWeight) s.startWeight=w;
+    s.calGoal=body().suggest; save(); wiz.step=2; wizRender(); return;
+  }
+  state.setupDone=true; save(); closeModal($("#setupModal")); render(); toast("You're set — add your first meal");
+}
+if(!state.setupDone && !location.search) setTimeout(wizOpen, 400);
+
+// ---------- reminders ----------
+// Web: fires while the app is open (in any tab) via the Notifications API. Native app: scheduled with Local Notifications
+// so they arrive with the app closed too.
+const LN = NATIVE ? ((window.Capacitor.Plugins||{}).LocalNotifications || null) : null;
+const pad2 = n => String(n).padStart(2,"0");
+const hhmm = (s,dflt) => /^\d\d:\d\d$/.test(s||"") ? s : dflt;
+function remList(){
+  const s=state.settings, out=[];
+  if(+s.remMeals) mealOrder().forEach((m,i)=>out.push({id:10+MEALS.indexOf(m), at:hhmm(s["t"+m],""), kind:"meal", meal:m, title:`Time to log ${mealName(m).toLowerCase()} 🍽`, body:"Add what you ate so the day stays on track."}));
+  if(+s.remWater){ const ev=Math.max(1,Math.min(6,+s.remWaterEvery||2)); let [h,mi]=hhmm(s.remWaterFrom,"08:00").split(":").map(Number); const [th,tm]=hhmm(s.remWaterTo,"20:00").split(":").map(Number); let n=0;
+    while(h*60+mi<=th*60+tm && n<12){ out.push({id:20+n, at:`${pad2(h)}:${pad2(mi)}`, kind:"water", title:"Drink some water 💧", body:"A glass now keeps you on target for the day."}); h+=ev; n++; } }
+  if(+s.remWeigh) out.push({id:40, at:hhmm(s.remWeighAt,"07:00"), kind:"weigh", weekly:+s.remWeigh===7, title:"Weigh-in time ⚖️", body:"Log today's weight to keep the trend honest."});
+  return out.filter(r=>r.at);
+}
+async function notify(title, body, tag){
+  if(LN){ try{ await LN.schedule({notifications:[{id:90, title, body, schedule:{at:new Date(Date.now()+1500)}}]}); }catch(e){} return; }
+  if(!("Notification" in window) || Notification.permission!=="granted") return;
+  try{ const reg=navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null; if(reg && reg.showNotification){ await reg.showNotification(title,{body,icon:"icon-192.png",badge:"icon-192.png",tag}); return; } }catch(e){}
+  try{ new Notification(title,{body,icon:"icon-192.png",tag}); }catch(e){}
+}
+function remPermission(){ if(LN) return state.remNative||"default"; return "Notification" in window ? Notification.permission : "unsupported"; }
+function renderRemState(){
+  const p=remPermission(), on=remList().length || +state.settings.remFast;
+  $("#remState").textContent = p==="unsupported" ? "not supported" : p==="denied" ? "blocked" : p==="granted" ? (on?"on":"nothing scheduled") : "tap Allow";
+  $("#remAllow").classList.toggle("hidden", p==="granted"||p==="unsupported");
+  $("#remNote").textContent = NATIVE ? "Reminders are scheduled on the phone and arrive even when the app is closed."
+    : p==="unsupported" ? "This browser can't show notifications. The Daily Fuel phone app can."
+    : p==="denied" ? "Notifications are blocked for this site — allow them in the browser's site settings to use reminders."
+    : "In the web version reminders only fire while Daily Fuel is open in a tab (it can be in the background). The phone app sends them even when closed.";
+}
+let remTickT=null;
+function remTick(){
+  if(LN || remPermission()!=="granted") return;
+  const k=todayKey(), now=new Date(), nowM=now.getHours()*60+now.getMinutes(), t=totals(k), d=peek(k);
+  if(state.remFired.day!==k) state.remFired={day:k};
+  let changed=false;
+  remList().forEach(r=>{
+    const [h,m]=r.at.split(":").map(Number), atM=h*60+m;
+    if(state.remFired[r.id] || atM>nowM || nowM-atM>30) return;      // only within 30 min of the set time, once a day
+    if(r.weekly && now.getDay()!==1) return;
+    state.remFired[r.id]=1; changed=true;
+    if(r.kind==="meal" && d.foods.some(f=>f.meal===r.meal)) return;
+    if(r.kind==="water" && t.water>=state.settings.waterGoal) return;
+    if(r.kind==="weigh" && state.weights[k]) return;
+    notify(r.title, r.body, "df-"+r.id);
+  });
+  const f=state.fast;
+  if(f && +state.settings.remFast && !f.notified && Date.now()-f.start>=f.hours*36e5){ f.notified=1; changed=true; notify("Fast complete 🎉", `${f.hours} hours done — you can eat now.`, "df-fast"); }
+  if(changed) save();
+}
+async function remSchedule(){
+  if(!LN) return;
+  try{
+    const perm=await LN.checkPermissions(); state.remNative=perm.display; if(perm.display!=="granted"){ save(); renderRemState(); return; }
+    const old=await LN.getPending(); if(old.notifications&&old.notifications.length) await LN.cancel({notifications:old.notifications.map(n=>({id:n.id}))});
+    const list=remList().map(r=>{ const [hour,minute]=r.at.split(":").map(Number); const on=r.weekly?{weekday:2,hour,minute}:{hour,minute}; return {id:r.id, title:r.title, body:r.body, schedule:{on, allowWhileIdle:true}}; });
+    const f=state.fast; if(f && +state.settings.remFast && !f.notified){ const at=new Date(f.start+f.hours*36e5); if(at>new Date()) list.push({id:50, title:"Fast complete 🎉", body:`${f.hours} hours done — you can eat now.`, schedule:{at, allowWhileIdle:true}}); }
+    if(list.length) await LN.schedule({notifications:list});
+    save(); renderRemState();
+  }catch(e){ console.warn("reminders", e); }
+}
+$("#remAllow").onclick=async()=>{
+  if(LN){ try{ const p=await LN.requestPermissions(); state.remNative=p.display; save(); await remSchedule(); toast(p.display==="granted"?"Reminders on":"Notifications not allowed"); }catch(e){ toast("Couldn't ask for permission"); } return; }
+  if(!("Notification" in window)){ toast("This browser can't show notifications"); return; }
+  const p=await Notification.requestPermission(); renderRemState(); toast(p==="granted"?"Notifications allowed":"Notifications not allowed"); if(p==="granted") remTick();
+};
+$("#remTest").onclick=()=>{ if(remPermission()!=="granted"){ toast("Allow notifications first"); return; } notify("Daily Fuel","Reminders are working 👍","df-test"); toast("Test sent"); };
+if(!LN){ remTickT=setInterval(remTick, 30000); setTimeout(remTick, 2000); }
+else { LN.checkPermissions().then(p=>{ state.remNative=p.display; remSchedule(); }).catch(()=>{}); }
 
 // ---------- URL hook for automations (iPhone Shortcuts, Tasker, etc.) ----------
 // ?steps=8421  ?weight=81.4  ?water=500  optional &date=YYYY-MM-DD (default today); the address is cleaned afterwards

@@ -70,8 +70,32 @@ sodium (UK traffic-light thresholds), with credit for fibre and protein and a pe
 sugary foods with nothing else in them. Recipes also carry diet tags derived from their
 ingredients — Vegetarian, Vegan, Pescatarian, Dairy-free, Low carb (≤20 g/serve), High
 protein (≥25 g/serve), High fibre, Under 400 kcal — and the Recipes tab has a second row of
-chips to filter by them. **Cook mode** (button under a recipe's steps) shows one step at a
-time in large type and keeps the screen awake.
+chips to filter by them, followed by style tags worked out from the method (Quick ≤20 min, Few
+ingredients ≤5, Baking, No-cook, One-pot) and a row of calorie ranges (under 200 … 600+). Every
+recipe shows an estimated total time, read from the times in its steps. The star on a card saves
+it to **Favourites**; a **Recipe of the day** is picked from the recipes matching your diet.
+**Cook mode** (button under a recipe's steps) shows one step at a time in large type and keeps
+the screen awake.
+
+## First run, meals and the weekend
+The first time the app opens it asks three things — your goal, your body details and pace — and
+shows the plan: daily calorie target, protein/carbs/fat in grams and the date you'd reach your
+goal weight at that pace. Everything it sets can be changed later in Settings.
+
+Settings → **Meals & diary**: rename the meals (Brekkie, Tea…), reorder them, and share your
+calorie goal between them in percent — each meal on the Today tab then shows "eaten / budget"
+(default 30/40/25/5 like most trackers). **Eat a bit more on…** lets the weekend (Sat–Sun,
+Fri–Sun or Fri–Sat) have extra calories and the other days a little less, so the week still adds
+up to seven times your goal. Also here: a diet preference that pre-selects the recipe filter, the
+glass size for the water button, whether exercise counts toward "burned", the starting weight for
+the progress bar, and show/hide for the water, fasting, steps and notes cards.
+
+## Reminders
+Settings → **Reminders**: meal reminders at the times you set (skipped once that meal has food
+logged), a water reminder every few hours while you're under your goal, a daily or Monday
+weigh-in reminder, and a notification when a timed fast is complete. In the browser these only
+fire while Daily Fuel is open in a tab; the Android/iOS app schedules them on the phone so they
+arrive with the app closed.
 
 ## Fasting
 Plans 12:12 to 24:0 plus **5:2**: on the 5:2 plan the card has "Make this a fast day", which
@@ -94,7 +118,8 @@ days with a dotted average line for logged days.
 - Food search with nothing typed shows your saved meals, saved foods, most-logged foods
   ("frequent") and recent items.
 - The weight card projects the date you'd reach your goal weight at the current two-week
-  trend, and the exercise list has 63 activities with MET values.
+  trend, shows a progress bar from your starting weight to the goal, and the exercise list has
+  63 activities with MET values.
 
 ## History tab
 **Last 7 days** shows the streak, average eaten and net, the week's balance against your
